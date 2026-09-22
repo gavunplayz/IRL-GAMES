@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="IRL Games - customizable games you can play together in real life.">
+  <title>IRL Games</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">IRL</span>
+        <span>Games</span>
+      </div>
+      <span class="version">V0.1</span>
+    </header>
+
+    <section id="home-screen" class="screen active">
+      <div class="hero">
+        <p class="eyebrow">REAL-LIFE GAME PLATFORM</p>
+        <h1>Play games.<br><span>In real life.</span></h1>
+        <p class="hero-text">Create a game, invite your friends, and give every player their own game screen.</p>
+      </div>
+
+      <div class="home-actions">
+        <button class="primary-button" id="create-lobby-btn">Create Lobby</button>
+        <button class="secondary-button" id="join-lobby-btn">Join Lobby</button>
+      </div>
+
+      <p class="small-note">MM2 is the first game. More game types can be added later.</p>
+    </section>
+
+    <section id="mode-screen" class="screen">
+      <button class="back-button" data-back="home-screen">← Back</button>
+      <div class="page-heading">
+        <p class="eyebrow">CREATE LOBBY</p>
+        <h2>Choose your device mode</h2>
+        <p>How will this device be used?</p>
+      </div>
+
+      <div class="mode-grid">
+        <button class="mode-card" data-mode="host">
+          <span class="mode-icon">🖥️</span>
+          <strong>Host</strong>
+          <span>Control the game without participating.</span>
+        </button>
+
+        <button class="mode-card" data-mode="player">
+          <span class="mode-icon">🎮</span>
+          <strong>Player</strong>
+          <span>Participate in the game on this device.</span>
+        </button>
+
+        <button class="mode-card" data-mode="host-player">
+          <span class="mode-icon">🖥️🎮</span>
+          <strong>Host + Player</strong>
+          <span>Host the game and participate from one device.</span>
+        </button>
+      </div>
+    </section>
+
+    <section id="host-screen" class="screen">
+      <button class="back-button" data-back="mode-screen">← Back</button>
+      <div class="page-heading">
+        <p class="eyebrow">YOUR LOBBY</p>
+        <h2>Lobby created</h2>
+      </div>
+
+      <div class="lobby-card">
+        <div class="lobby-code-label">LOBBY CODE</div>
+        <div id="lobby-code" class="lobby-code">------</div>
+
+        <div class="qr-placeholder">
+          <div id="qr-code" class="qr-box">
+            <span>QR</span>
+          </div>
+          <p>Scan to join this lobby</p>
+        </div>
+
+        <div class="join-link-wrap">
+          <label for="join-link">Or type this link:</label>
+          <div class="join-link-row">
+            <input id="join-link" type="text" readonly>
+            <button id="copy-link-btn" class="small-button">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="lobby-status">
+        <span class="status-dot"></span>
+        <span id="host-status">Waiting for players...</span>
+      </div>
+
+      <button id="enter-host-lobby-btn" class="primary-button">Enter Lobby</button>
+    </section>
+
+    <section id="join-screen" class="screen">
+      <button class="back-button" data-back="home-screen">← Back</button>
+      <div class="page-heading">
+        <p class="eyebrow">JOIN A GAME</p>
+        <h2>Enter a lobby code</h2>
+        <p>Type the code shown on the host's screen.</p>
+      </div>
+
+      <form id="join-form" class="join-form">
+        <label for="lobby-code-input">Lobby code</label>
+        <input id="lobby-code-input" maxlength="6" placeholder="7K4P9Q" autocomplete="off">
+        <button class="primary-button" type="submit">Join Lobby</button>
+      </form>
+      <p id="join-error" class="error-message"></p>
+    </section>
+
+    <section id="lobby-screen" class="screen">
+      <button class="back-button" data-back="home-screen">← Leave</button>
+      <div class="page-heading">
+        <p class="eyebrow">LOBBY</p>
+        <h2 id="lobby-title">Waiting Room</h2>
+        <p id="lobby-mode-text">Host mode</p>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <span>Lobby</span>
+          <strong id="lobby-display-code">------</strong>
+        </div>
+        <div class="info-card">
+          <span>Players</span>
+          <strong id="player-count">1</strong>
+        </div>
+      </div>
+
+      <div class="feature-preview">
+        <h3>Game setup</h3>
+        <p>Rules, boundaries, roles, tasks, events, photos, and custom logic will appear here as we build the platform.</p>
+      </div>
+
+      <div class="coming-soon">
+        <span>V0.1 FOUNDATION</span>
+        <p>Realtime multiplayer will be connected after the basic interface is working.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
