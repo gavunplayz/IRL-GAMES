@@ -38,6 +38,7 @@
     },
     "gameNotes": {
       "$lobbyId": {
+        ".write": "auth != null && root.child('lobbies').child($lobbyId).child('hostUid').val() === auth.uid",
         "$uid": {
           ".read": "auth != null && auth.uid === $uid",
           ".write": "auth != null && auth.uid === $uid",
