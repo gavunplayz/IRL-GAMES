@@ -9,7 +9,7 @@
 </head>
 <body>
 <main class="app-shell">
-<header class="topbar"><div class="brand"><span class="brand-mark">IRL</span><span>Games</span></div><span class="version">V0.3.2</span></header>
+<header class="topbar"><div class="brand"><span class="brand-mark">IRL</span><span>Games</span></div><span class="version">V0.3.3</span></header>
 
 <section id="home-screen" class="screen active">
 <div class="hero"><p class="eyebrow">REAL-LIFE GAME PLATFORM</p><h1>Play games.<br><span>In real life.</span></h1><p class="hero-text">Create a game, invite your friends, and give every player their own game screen.</p></div>
@@ -25,6 +25,17 @@
 <button class="mode-card" data-mode="player"><span class="mode-icon">🎮</span><strong>Player</strong><span>Participate in the game on this device.</span></button>
 <button class="mode-card" data-mode="host-player"><span class="mode-icon">🖥️🎮</span><strong>Host + Player</strong><span>Host the game and participate from one device.</span></button>
 </div>
+</section>
+
+<section id="host-player-name-screen" class="screen">
+<button class="back-button" data-back="mode-screen">← Back</button>
+<div class="page-heading"><p class="eyebrow">HOST + PLAYER</p><h2>Choose your player name</h2><p>This device will host the game and participate as a player.</p></div>
+<form id="host-player-name-form" class="join-form">
+<label for="host-player-name-input">Your player name</label>
+<input id="host-player-name-input" maxlength="20" placeholder="Player 1" autocomplete="nickname">
+<button class="primary-button" type="submit">Create Lobby</button>
+</form>
+<p id="host-player-name-error" class="error-message"></p>
 </section>
 
 <section id="host-screen" class="screen">
