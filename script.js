@@ -28,10 +28,11 @@ let lobbyUnsubscribe = null;
 let gameDeathParentUnsubscribe = null;
 let gameDeathOwnUnsubscribe = null;
 let gameActionUnsubscribe = null;
+let gameKillsUnsubscribe = null;
+let gameNotesUnsubscribe = null;
 let gameDeaths = {};
 let myGameDeath = null;
 let myGameRole = null;
-let gameActionRoleLabel = "";
 const processedGameActions = new Set();
 
 const DEFAULT_DEATH_VISIBILITY = "none";
@@ -250,6 +251,120 @@ function stopGameDeathListeners() {
     gameDeathOwnUnsubscribe = null;
   }
 }
+function stopGameKillsListener() {
+  if (gameKillsUnsubscribe) {
+    gameKillsUnsubscribe();
+    gameKillsUnsubscribe = null;
+  }
+}
+
+function stopGameNotesListener() {
+  if (gameNotesUnsubscribe) {
+    gameNotesUnsubscribe();
+    gameNotesUnsubscribe = null;
+  }
+}
+
+function renderMurdererKillList(kills = {}) {
+  const card = document.getElementById("murderer-kills-card");
+  const list = document.getElementById("murderer-kill-list");
+  if (!card || !list) return;
+
+  if (myGameRole?.roleId !== "murderer") {
+    card.style.display = "none";
+    return;
+  }
+
+  card.style.display = "block";
+  list.innerHTML = "";
+
+  const entries = Object.values(kills || {});
+  if (entries.length === 0) {
+    list.innerHTML = '<p class="empty-state">No One</p>';
+    return;
+  }
+
+  entries
+    .sort((a, b) => Number(a.killedAt || 0) - Number(b.killedAt || 0))
+    .forEach(kill => {
+      const row = document.createElement("div");
+      row.className = "game-kill-row";
+
+      const name = document.createElement("span");
+      name.className = "kill-name";
+      name.textContent = kill.name || "Unknown player";
+
+      const time = document.createElement("span");
+      time.className = "kill-time";
+      time.textContent = "Killed";
+
+      row.appendChild(name);
+      row.appendChild(time);
+      list.appendChild(row);
+    });
+}
+
+function startMurdererKillListener() {
+  stopGameKillsListener();
+
+  const card = document.getElementById("murderer-kills-card");
+  if (!card) return;
+
+  if (!currentUser || !currentLobbyCode || myGameRole?.roleId !== "murderer") {
+    card.style.display = "none";
+    return;
+  }
+
+  card.style.display = "block";
+  const killsRef = ref(db, "gamePrivate/" + currentLobbyCode + "/" + currentUser.uid + "/kills");
+  gameKillsUnsubscribe = onValue(killsRef, snapshot => {
+    renderMurdererKillList(snapshot.val() || {});
+  }, error => {
+    console.error("Murderer kill list error:", error);
+  });
+}
+
+function startGameNotesListener() {
+  stopGameNotesListener();
+
+  const input = document.getElementById("game-notes");
+  const status = document.getElementById("game-notes-status");
+  if (!input || !currentUser || !currentLobbyCode) return;
+
+  const notesRef = ref(db, "gameNotes/" + currentLobbyCode + "/" + currentUser.uid);
+  gameNotesUnsubscribe = onValue(notesRef, snapshot => {
+    const data = snapshot.val();
+    input.value = typeof data?.text === "string" ? data.text : "";
+    if (status) status.textContent = data?.updatedAt ? "Saved" : "";
+  }, error => {
+    console.error("Game notes listener error:", error);
+    if (status) status.textContent = "Could not load notes.";
+  });
+}
+
+async function saveGameNotes() {
+  const input = document.getElementById("game-notes");
+  const status = document.getElementById("game-notes-status");
+  if (!input || !currentUser || !currentLobbyCode) return;
+
+  if (input.value.length > 5000) {
+    if (status) status.textContent = "Notes are limited to 5,000 characters.";
+    return;
+  }
+
+  if (status) status.textContent = "Saving...";
+
+  try {
+    await set(ref(db, "gameNotes/" + currentLobbyCode + "/" + currentUser.uid), {
+      text: input.value,
+      updatedAt: Date.now()
+    });
+    if (status) status.textContent = "Saved";
+  } catch (error) {
+    console.error(error);
+    if (status) status.textContent = "Could not save notes.";
+  }
+}
 
 function renderGamePlayerList() {
   const list = document.getElementById("game-player-list");
@@ -433,12 +548,18 @@ function startGameDeathListeners(deathVisibility) {
 }
 
 async function processGameAction(actorUid, actionId, action) {
-  if (!currentUser || currentUser.uid !== (await get(ref(db, "lobbies/" + currentLobbyCode + "/hostUid"))).val()) return;
-  if (!action || !action.targetUid || processedGameActions.has(actorUid + ":" + actionId)) return;
+  if (!currentUser || !action || !action.targetUid || processedGameActions.has(actorUid + ":" + actionId)) return;
+
+  const hostSnapshot = await get(ref(db, "lobbies/" + currentLobbyCode + "/hostUid"));
+  if (!hostSnapshot.exists() || hostSnapshot.val() !== currentUser.uid) return;
 
   processedGameActions.add(actorUid + ":" + actionId);
 
   try {
+    const lobbySnapshot = await get(ref(db, "lobbies/" + currentLobbyCode));
+    const lobby = lobbySnapshot.val();
+    if (!lobby || lobby.status !== "in_progress") return;
+
     const assignmentsSnapshot = await get(ref(db, "gamePrivate/" + currentLobbyCode));
     const assignments = assignmentsSnapshot.val() || {};
     const actorRole = assignments[actorUid]?.roleId;
@@ -446,10 +567,18 @@ async function processGameAction(actorUid, actionId, action) {
 
     if (actorRole !== "murderer" && actorRole !== "sheriff") return;
     if (!players.some(player => player.uid === action.targetUid)) return;
-    if (gameDeaths[action.targetUid]) return;
 
+    const deathsSnapshot = await get(ref(db, "gameState/" + currentLobbyCode + "/deaths"));
+    const latestDeaths = deathsSnapshot.val() || {};
+    if (latestDeaths[action.targetUid]) return;
+    if (latestDeaths[actorUid]) return;
+
+    const targetPlayer = players.find(player => player.uid === action.targetUid);
+    if (!targetPlayer) return;
+
+    const now = Date.now();
     const death = {
-      deadAt: Date.now(),
+      deadAt: now,
       killedBy: actorUid,
       cause: actorRole === "sheriff" && targetRole !== "murderer" ? "sheriff_wrong_target" : "role_action"
     };
@@ -457,9 +586,16 @@ async function processGameAction(actorUid, actionId, action) {
     const updates = {};
     updates["gameState/" + currentLobbyCode + "/deaths/" + action.targetUid] = death;
 
+    if (actorRole === "murderer") {
+      updates["gamePrivate/" + currentLobbyCode + "/" + actorUid + "/kills/" + action.targetUid] = {
+        name: targetPlayer.name,
+        killedAt: now
+      };
+    }
+
     if (actorRole === "sheriff" && targetRole !== "murderer") {
       updates["gameState/" + currentLobbyCode + "/deaths/" + actorUid] = {
-        deadAt: Date.now(),
+        deadAt: now,
         killedBy: actorUid,
         cause: "sheriff_wrong_target"
       };
@@ -470,7 +606,6 @@ async function processGameAction(actorUid, actionId, action) {
     console.error("Could not process game action:", error);
   }
 }
-
 function startGameActionListener() {
   if (gameActionUnsubscribe) {
     gameActionUnsubscribe();
@@ -552,6 +687,12 @@ async function renderGameScreen(lobby) {
         hostList.appendChild(row);
       });
     }
+
+    startMurdererKillListener();
+    startGameNotesListener();
+
+    const restartCard = document.getElementById("host-restart-card");
+    if (restartCard) restartCard.style.display = canManagePlayers() ? "block" : "none";
 
     if (currentMode === "host" || currentMode === "host-player") {
       startGameActionListener();
@@ -865,6 +1006,24 @@ function listenToLobby() {
     if (lobby.status === "in_progress") {
       renderGameScreen(lobby);
       showScreen("game-screen");
+    } else if (lobby.status === "waiting" && document.getElementById("game-screen").classList.contains("active")) {
+      stopGameDeathListeners();
+      stopGameKillsListener();
+      stopGameNotesListener();
+      if (gameActionUnsubscribe) {
+        gameActionUnsubscribe();
+        gameActionUnsubscribe = null;
+      }
+      processedGameActions.clear();
+      gameDeaths = {};
+      myGameDeath = null;
+      myGameRole = null;
+
+      if (currentMode === "player") {
+        showScreen("lobby-screen");
+      } else {
+        showScreen("game-setup-screen");
+      }
     }
 
     if (currentMode === "player" && currentUser && !lobby.players[currentUser.uid]) {
@@ -998,6 +1157,8 @@ async function joinLobby(code, name) {
 async function leaveLobby() {
   stopLobbyListener();
   stopGameDeathListeners();
+  stopGameKillsListener();
+  stopGameNotesListener();
   if (gameActionUnsubscribe) {
     gameActionUnsubscribe();
     gameActionUnsubscribe = null;
@@ -1019,6 +1180,7 @@ async function leaveLobby() {
         await remove(ref(db, "gamePrivate/" + currentLobbyCode));
         await remove(ref(db, "gameState/" + currentLobbyCode));
         await remove(ref(db, "gameActions/" + currentLobbyCode));
+        await remove(ref(db, "gameNotes/" + currentLobbyCode));
         await remove(lobbyRef());
       } else {
         await remove(ref(db, "lobbies/" + currentLobbyCode + "/players/" + currentUser.uid));
@@ -1032,6 +1194,39 @@ async function leaveLobby() {
   currentPlayerName = "";
   players = [];
   showScreen("home-screen");
+}
+
+async function restartGame() {
+  if (!canManagePlayers() || !currentUser || !currentLobbyCode) return;
+
+  const status = document.getElementById("restart-game-status");
+  if (!confirm("Restart this round? Roles, deaths, and actions will be cleared, but everyone will stay in the lobby.")) return;
+
+  const button = document.getElementById("restart-game-btn");
+  if (button) button.disabled = true;
+  if (status) status.textContent = "Restarting round...";
+
+  try {
+    await remove(ref(db, "gamePrivate/" + currentLobbyCode));
+    await remove(ref(db, "gameState/" + currentLobbyCode));
+    await remove(ref(db, "gameActions/" + currentLobbyCode));
+    await remove(ref(db, "lobbies/" + currentLobbyCode + "/publicGame"));
+    await set(ref(db, "lobbies/" + currentLobbyCode + "/status"), "waiting");
+
+    stopGameDeathListeners();
+    stopGameKillsListener();
+    stopGameNotesListener();
+    processedGameActions.clear();
+    gameDeaths = {};
+    myGameDeath = null;
+    myGameRole = null;
+
+    if (status) status.textContent = "Round reset. Configure the next round and start when ready.";
+  } catch (error) {
+    console.error(error);
+    if (status) status.textContent = "Could not restart the round. Please try again.";
+    if (button) button.disabled = false;
+  }
 }
 
 function enterLobby() {
@@ -1170,6 +1365,8 @@ document.getElementById("continue-game-setup-btn").addEventListener("click", asy
 
 document.getElementById("start-game-btn").addEventListener("click", startGame);
 document.getElementById("game-action-btn").addEventListener("click", submitGameAction);
+document.getElementById("restart-game-btn").addEventListener("click", restartGame);
+document.getElementById("save-game-notes-btn").addEventListener("click", saveGameNotes);
 
 document.getElementById("game-leave-btn").addEventListener("click", async () => {
   await leaveLobby();
