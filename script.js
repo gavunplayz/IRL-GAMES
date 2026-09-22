@@ -22,6 +22,7 @@ let currentLobbyCode = "";
 let currentPlayerName = "";
 let currentUser = null;
 let players = [];
+let selectedGame = "mm2";
 let lobbyUnsubscribe = null;
 
 function showScreen(id) {
@@ -71,6 +72,29 @@ function renderPlayers() {
 
   document.getElementById("host-player-count").textContent = players.length;
   document.getElementById("player-count").textContent = players.length;
+
+  const setupCount = document.getElementById("setup-player-count");
+  const setupCode = document.getElementById("setup-lobby-code");
+  const setupList = document.getElementById("setup-player-list");
+
+  if (setupCount) setupCount.textContent = players.length;
+  if (setupCode) setupCode.textContent = currentLobbyCode || "------";
+
+  if (setupList) {
+    setupList.innerHTML = "";
+    if (players.length === 0) {
+      setupList.innerHTML = '<p class="empty-state">No players have joined yet.</p>';
+    } else {
+      players.forEach(player => {
+        const row = document.createElement("div");
+        row.className = "player-row";
+        row.innerHTML = '<span class="player-name"></span><span class="player-badge"></span>';
+        row.querySelector(".player-name").textContent = player.name;
+        row.querySelector(".player-badge").textContent = player.host ? "HOST" : "PLAYER";
+        setupList.appendChild(row);
+      });
+    }
+  }
 }
 
 function stopLobbyListener() {
@@ -248,7 +272,7 @@ function enterLobby() {
     currentMode === "host-player" ? "Host + Player mode" :
     currentMode === "host" ? "Host mode" : "Player mode";
   renderPlayers();
-  showScreen("lobby-screen");
+  showScreen("game-selection-screen");
 }
 
 document.getElementById("create-lobby-btn").addEventListener("click", () => showScreen("mode-screen"));
@@ -286,6 +310,34 @@ document.getElementById("copy-link-btn").addEventListener("click", async () => {
 });
 
 document.getElementById("enter-host-lobby-btn").addEventListener("click", enterLobby);
+
+document.querySelectorAll(".game-card:not(.disabled)").forEach(button => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".game-card").forEach(card => card.classList.remove("selected"));
+    button.classList.add("selected");
+    selectedGame = button.dataset.game;
+    const name = button.querySelector("strong")?.textContent || "Selected game";
+    const description = button.querySelector("small")?.textContent || "";
+    document.getElementById("selected-game-name").textContent = name;
+    document.getElementById("selected-game-description").textContent = description;
+  });
+});
+
+document.getElementById("continue-game-setup-btn").addEventListener("click", async () => {
+  if (!currentUser || !currentLobbyCode || selectedGame !== "mm2") return;
+
+  try {
+    await set(ref(db, "lobbies/" + currentLobbyCode + "/settings/gameType"), selectedGame);
+    await set(ref(db, "lobbies/" + currentLobbyCode + "/settings/gameName"), "Murder Mystery 2");
+    document.getElementById("setup-player-count").textContent = players.length;
+    document.getElementById("setup-lobby-code").textContent = currentLobbyCode;
+    renderPlayers();
+    showScreen("game-setup-screen");
+  } catch (error) {
+    console.error(error);
+    alert("Could not save the game selection. Please try again.");
+  }
+});
 
 document.getElementById("join-form").addEventListener("submit", async event => {
   event.preventDefault();
