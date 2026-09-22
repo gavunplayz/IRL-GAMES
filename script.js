@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-import { getDatabase, ref, set, get, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+import { getDatabase, ref, set, get, onValue, onDisconnect, remove, push } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC_Ku2b5gdyzoSTKJWEhsHK_qYeRzDoiP0",
@@ -25,6 +25,14 @@ let pendingMode = "";
 let players = [];
 let selectedGame = "mm2";
 let lobbyUnsubscribe = null;
+let gameDeathParentUnsubscribe = null;
+let gameDeathOwnUnsubscribe = null;
+let gameActionUnsubscribe = null;
+let gameDeaths = {};
+let myGameDeath = null;
+let myGameRole = null;
+let gameActionRoleLabel = "";
+const processedGameActions = new Set();
 
 const DEFAULT_DEATH_VISIBILITY = "none";
 
@@ -232,6 +240,261 @@ async function loadMyRole() {
   return snapshot.exists() ? snapshot.val() : null;
 }
 
+function stopGameDeathListeners() {
+  if (gameDeathParentUnsubscribe) {
+    gameDeathParentUnsubscribe();
+    gameDeathParentUnsubscribe = null;
+  }
+  if (gameDeathOwnUnsubscribe) {
+    gameDeathOwnUnsubscribe();
+    gameDeathOwnUnsubscribe = null;
+  }
+}
+
+function renderGamePlayerList() {
+  const list = document.getElementById("game-player-list");
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  if (players.length === 0) {
+    list.innerHTML = '<p class="empty-state">No players are currently connected.</p>';
+    return;
+  }
+
+  players.forEach(player => {
+    const row = document.createElement("div");
+    row.className = "game-player-row";
+
+    const death = gameDeaths[player.uid] || (player.uid === currentUser?.uid ? myGameDeath : null);
+    const isDead = Boolean(death);
+
+    if (isDead) row.classList.add("dead");
+
+    const main = document.createElement("div");
+    main.className = "player-main";
+
+    const name = document.createElement("span");
+    name.className = "player-name";
+    name.textContent = player.name + (player.uid === currentUser?.uid ? " " : "");
+
+    if (player.uid === currentUser?.uid) {
+      const you = document.createElement("span");
+      you.className = "you-label";
+      you.textContent = "YOU";
+      name.appendChild(you);
+    }
+
+    const state = document.createElement("span");
+    state.className = "player-state";
+    state.textContent = isDead ? "DEAD" : "Alive";
+
+    main.appendChild(name);
+    main.appendChild(state);
+
+    row.appendChild(main);
+    list.appendChild(row);
+  });
+
+  const statusLabel = document.getElementById("game-player-status-label");
+  if (statusLabel) {
+    statusLabel.textContent = Object.keys(gameDeaths).length > 0 || myGameDeath ? "STATUS" : "LIVE";
+  }
+
+  renderGameActionPanel();
+}
+
+function renderGameActionPanel() {
+  const card = document.getElementById("game-action-card");
+  const label = document.getElementById("game-action-role-label");
+  const description = document.getElementById("game-action-description");
+  const select = document.getElementById("game-target-select");
+  const button = document.getElementById("game-action-btn");
+  const status = document.getElementById("game-action-status");
+
+  if (!card || !select || !button || !description || !label) return;
+
+  const isActionRole = myGameRole?.roleId === "murderer" || myGameRole?.roleId === "sheriff";
+  if (!isActionRole || !currentUser || currentMode === "host") {
+    card.style.display = "none";
+    return;
+  }
+
+  card.style.display = "block";
+  label.textContent = myGameRole.roleName.toUpperCase();
+  description.textContent = myGameRole.roleId === "sheriff"
+    ? "Choose a player to mark as dead. If the Sheriff chooses someone who is not the Murderer, the Sheriff is also marked dead."
+    : "Choose a player to mark as dead.";
+
+  select.innerHTML = "";
+
+  const available = players.filter(player =>
+    player.uid !== currentUser.uid &&
+    !gameDeaths[player.uid]
+  );
+
+  if (myGameDeath) {
+    card.classList.add("disabled-action");
+    select.disabled = true;
+    button.disabled = true;
+    status.textContent = "You are dead and cannot use your role action.";
+    return;
+  }
+
+  card.classList.remove("disabled-action");
+  select.disabled = available.length === 0;
+  button.disabled = available.length === 0;
+
+  if (available.length === 0) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No available players";
+    select.appendChild(option);
+    status.textContent = "There are no living players to choose.";
+    return;
+  }
+
+  available.forEach(player => {
+    const option = document.createElement("option");
+    option.value = player.uid;
+    option.textContent = player.name;
+    select.appendChild(option);
+  });
+
+  status.textContent = "";
+}
+
+async function submitGameAction() {
+  if (!currentUser || !currentLobbyCode || !myGameRole) return;
+  if (myGameRole.roleId !== "murderer" && myGameRole.roleId !== "sheriff") return;
+  if (myGameDeath) return;
+
+  const select = document.getElementById("game-target-select");
+  const button = document.getElementById("game-action-btn");
+  const status = document.getElementById("game-action-status");
+  const targetUid = select?.value;
+
+  if (!targetUid || targetUid === currentUser.uid) return;
+
+  const target = players.find(player => player.uid === targetUid);
+  if (!target || gameDeaths[targetUid]) {
+    if (status) status.textContent = "That player is no longer available.";
+    return;
+  }
+
+  if (button) button.disabled = true;
+  if (status) status.textContent = "Submitting action...";
+
+  try {
+    await push(ref(db, "gameActions/" + currentLobbyCode + "/" + currentUser.uid), {
+      targetUid,
+      createdAt: Date.now()
+    });
+    if (status) status.textContent = "Action submitted.";
+  } catch (error) {
+    console.error(error);
+    if (status) status.textContent = "Could not submit the action. Please try again.";
+    renderGameActionPanel();
+  }
+}
+
+function startGameDeathListeners(deathVisibility) {
+  stopGameDeathListeners();
+
+  gameDeaths = {};
+  myGameDeath = null;
+
+  if (!currentUser || !currentLobbyCode) return;
+
+  const ownDeathRef = ref(db, "gameState/" + currentLobbyCode + "/deaths/" + currentUser.uid);
+  gameDeathOwnUnsubscribe = onValue(ownDeathRef, snapshot => {
+    myGameDeath = snapshot.exists() ? snapshot.val() : null;
+    if (myGameDeath) {
+      gameDeaths[currentUser.uid] = myGameDeath;
+    } else if (gameDeaths[currentUser.uid]) {
+      delete gameDeaths[currentUser.uid];
+    }
+    renderGamePlayerList();
+  }, error => {
+    console.error(error);
+  });
+
+  const canReadAllDeaths = currentMode === "host" || deathVisibility === "all";
+  if (canReadAllDeaths) {
+    const deathsRef = ref(db, "gameState/" + currentLobbyCode + "/deaths");
+    gameDeathParentUnsubscribe = onValue(deathsRef, snapshot => {
+      gameDeaths = snapshot.val() || {};
+      myGameDeath = currentUser && gameDeaths[currentUser.uid] ? gameDeaths[currentUser.uid] : myGameDeath;
+      renderGamePlayerList();
+    }, error => {
+      console.error(error);
+    });
+  }
+}
+
+async function processGameAction(actorUid, actionId, action) {
+  if (!currentUser || currentUser.uid !== (await get(ref(db, "lobbies/" + currentLobbyCode + "/hostUid"))).val()) return;
+  if (!action || !action.targetUid || processedGameActions.has(actorUid + ":" + actionId)) return;
+
+  processedGameActions.add(actorUid + ":" + actionId);
+
+  try {
+    const assignmentsSnapshot = await get(ref(db, "gamePrivate/" + currentLobbyCode));
+    const assignments = assignmentsSnapshot.val() || {};
+    const actorRole = assignments[actorUid]?.roleId;
+    const targetRole = assignments[action.targetUid]?.roleId;
+
+    if (actorRole !== "murderer" && actorRole !== "sheriff") return;
+    if (!players.some(player => player.uid === action.targetUid)) return;
+    if (gameDeaths[action.targetUid]) return;
+
+    const death = {
+      deadAt: Date.now(),
+      killedBy: actorUid,
+      cause: actorRole === "sheriff" && targetRole !== "murderer" ? "sheriff_wrong_target" : "role_action"
+    };
+
+    const updates = {};
+    updates["gameState/" + currentLobbyCode + "/deaths/" + action.targetUid] = death;
+
+    if (actorRole === "sheriff" && targetRole !== "murderer") {
+      updates["gameState/" + currentLobbyCode + "/deaths/" + actorUid] = {
+        deadAt: Date.now(),
+        killedBy: actorUid,
+        cause: "sheriff_wrong_target"
+      };
+    }
+
+    await update(ref(db), updates);
+  } catch (error) {
+    console.error("Could not process game action:", error);
+  }
+}
+
+function startGameActionListener() {
+  if (gameActionUnsubscribe) {
+    gameActionUnsubscribe();
+    gameActionUnsubscribe = null;
+  }
+
+  processedGameActions.clear();
+
+  if (currentMode !== "host" && currentMode !== "host-player") return;
+  if (!currentUser || !currentLobbyCode) return;
+
+  const actionsRef = ref(db, "gameActions/" + currentLobbyCode);
+  gameActionUnsubscribe = onValue(actionsRef, snapshot => {
+    const actions = snapshot.val() || {};
+    Object.entries(actions).forEach(([actorUid, actorActions]) => {
+      Object.entries(actorActions || {}).forEach(([actionId, action]) => {
+        processGameAction(actorUid, actionId, action);
+      });
+    });
+  }, error => {
+    console.error("Game action listener error:", error);
+  });
+}
+
 async function renderGameScreen(lobby) {
   const roleName = document.getElementById("game-role-name");
   const roleDescription = document.getElementById("game-role-description");
@@ -247,6 +510,7 @@ async function renderGameScreen(lobby) {
 
   try {
     const mine = await loadMyRole();
+    myGameRole = mine;
 
     if (mine) {
       roleName.textContent = mine.roleName;
@@ -261,6 +525,9 @@ async function renderGameScreen(lobby) {
       roleName.textContent = "Role unavailable";
       roleDescription.textContent = "Your private role could not be loaded.";
     }
+
+    const deathVisibility = lobby.settings?.mm2?.deathVisibility || DEFAULT_DEATH_VISIBILITY;
+    startGameDeathListeners(deathVisibility);
 
     if (currentMode === "host" && currentUser) {
       const allRoles = await get(ref(db, "gamePrivate/" + currentLobbyCode));
@@ -284,6 +551,10 @@ async function renderGameScreen(lobby) {
         row.appendChild(role);
         hostList.appendChild(row);
       });
+    }
+
+    if (currentMode === "host" || currentMode === "host-player") {
+      startGameActionListener();
     }
   } catch (error) {
     console.error(error);
@@ -740,6 +1011,8 @@ async function leaveLobby() {
 
       if (lobby.hostUid === currentUser.uid) {
         await remove(ref(db, "gamePrivate/" + currentLobbyCode));
+        await remove(ref(db, "gameState/" + currentLobbyCode));
+        await remove(ref(db, "gameActions/" + currentLobbyCode));
         await remove(lobbyRef());
       } else {
         await remove(ref(db, "lobbies/" + currentLobbyCode + "/players/" + currentUser.uid));
