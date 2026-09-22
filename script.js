@@ -165,6 +165,18 @@ function listenToLobby() {
     }
 
     players = Object.entries(lobby.players || {}).map(([uid, player]) => ({ uid, ...player }));
+
+    if (currentMode === "player" && currentUser && !lobby.players[currentUser.uid]) {
+      document.getElementById("join-error").textContent = "The host removed you from this lobby.";
+      stopLobbyListener();
+      currentLobbyCode = "";
+      currentPlayerName = "";
+      players = [];
+      renderPlayers();
+      showScreen("join-screen");
+      return;
+    }
+
     players.sort((a, b) => {
       if (a.host && !b.host) return -1;
       if (!a.host && b.host) return 1;
