@@ -23,6 +23,30 @@
           ".validate": "newData.hasChildren(['roleId', 'roleName', 'assignedAt']) && newData.child('roleId').isString() && newData.child('roleName').isString() && newData.child('assignedAt').isNumber()"
         }
       }
+    },
+    "gameActions": {
+      "$lobbyId": {
+        ".read": "auth != null && root.child('lobbies').child($lobbyId).child('hostUid').val() === auth.uid",
+        "$actorUid": {
+          ".read": "auth != null && (auth.uid === $actorUid || root.child('lobbies').child($lobbyId).child('hostUid').val() === auth.uid)",
+          "$actionId": {
+            ".write": "auth != null && auth.uid === $actorUid && (root.child('gamePrivate').child($lobbyId).child(auth.uid).child('roleId').val() === 'murderer' || root.child('gamePrivate').child($lobbyId).child(auth.uid).child('roleId').val() === 'sheriff') && !root.child('gameState').child($lobbyId).child('deaths').child(auth.uid).exists()",
+            ".validate": "newData.hasChildren(['targetUid', 'createdAt']) && newData.child('targetUid').isString() && newData.child('createdAt').isNumber() && root.child('lobbies').child($lobbyId).child('players').child(newData.child('targetUid').val()).exists() && newData.child('targetUid').val() !== auth.uid"
+          }
+        }
+      }
+    },
+    "gameState": {
+      "$lobbyId": {
+        "deaths": {
+          ".read": "auth != null && (root.child('lobbies').child($lobbyId).child('hostUid').val() === auth.uid || root.child('lobbies').child($lobbyId).child('settings').child('mm2').child('deathVisibility').val() === 'all')",
+          "$uid": {
+            ".read": "auth != null && (auth.uid === $uid || root.child('lobbies').child($lobbyId).child('hostUid').val() === auth.uid || root.child('lobbies').child($lobbyId).child('settings').child('mm2').child('deathVisibility').val() === 'all')",
+            ".write": "auth != null && root.child('lobbies').child($lobbyId).child('hostUid').val() === auth.uid",
+            ".validate": "newData.hasChildren(['deadAt', 'killedBy', 'cause']) && newData.child('deadAt').isNumber() && newData.child('killedBy').isString() && newData.child('cause').isString()"
+          }
+        }
+      }
     }
   }
 }
