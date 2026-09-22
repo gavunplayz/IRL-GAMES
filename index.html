@@ -9,7 +9,7 @@
 </head>
 <body>
 <main class="app-shell">
-<header class="topbar"><div class="brand"><span class="brand-mark">IRL</span><span>Games</span></div><span class="version">V0.2.0</span></header>
+<header class="topbar"><div class="brand"><span class="brand-mark">IRL</span><span>Games</span></div><span class="version">V0.3.1</span></header>
 
 <section id="home-screen" class="screen active">
 <div class="hero"><p class="eyebrow">REAL-LIFE GAME PLATFORM</p><h1>Play games.<br><span>In real life.</span></h1><p class="hero-text">Create a game, invite your friends, and give every player their own game screen.</p></div>
@@ -38,6 +38,31 @@
 <div class="lobby-status"><span class="status-dot"></span><span id="host-status">Connecting to Firebase...</span></div>
 <div class="host-players-card"><div class="section-heading"><h3>Players</h3><span id="host-player-count">0</span></div><div id="host-player-list" class="player-list"><p class="empty-state">No players have joined yet.</p></div></div>
 <button id="enter-host-lobby-btn" class="primary-button">Open Game Setup</button>
+</section>
+
+<section id="game-selection-screen" class="screen">
+<button class="back-button" data-back="host-screen">← Back</button>
+<div class="page-heading"><p class="eyebrow">GAME SETUP • STEP 1</p><h2>Choose a game</h2><p>Select the game this lobby will use. You can change the setup before starting.</p></div>
+<div class="game-grid">
+<button class="game-card selected" data-game="mm2"><span class="game-icon">🔎</span><span><strong>Murder Mystery 2</strong><small>Roles, clues, tasks, and hidden information.</small></span><span class="game-status">AVAILABLE</span></button>
+<button class="game-card disabled" type="button"><span class="game-icon">🚩</span><span><strong>Capture the Flag</strong><small>Team-based game mode coming later.</small></span><span class="game-status">COMING SOON</span></button>
+<button class="game-card disabled" type="button"><span class="game-icon">🦠</span><span><strong>Infection</strong><small>Infection game mode coming later.</small></span><span class="game-status">COMING SOON</span></button>
+<button class="game-card disabled" type="button"><span class="game-icon">👀</span><span><strong>Hide &amp; Seek</strong><small>Hide &amp; Seek game mode coming later.</small></span><span class="game-status">COMING SOON</span></button>
+</div>
+<div class="setup-selection"><span>SELECTED GAME</span><strong id="selected-game-name">Murder Mystery 2</strong><p id="selected-game-description">The first fully supported IRL Games game.</p></div>
+<button id="continue-game-setup-btn" class="primary-button">Continue to Game Setup</button>
+</section>
+
+<section id="game-setup-screen" class="screen">
+<button class="back-button" data-back="game-selection-screen">← Back</button>
+<div class="page-heading"><p class="eyebrow">GAME SETUP • STEP 2</p><h2>Murder Mystery 2</h2><p>Configure the lobby before the game begins. Role configuration is the next part of V0.3.</p></div>
+<div class="setup-summary">
+<div><span>GAME</span><strong>Murder Mystery 2</strong></div>
+<div><span>PLAYERS</span><strong id="setup-player-count">0</strong></div>
+<div><span>LOBBY</span><strong id="setup-lobby-code">------</strong></div>
+</div>
+<div class="setup-card"><div class="section-heading"><h3>Players</h3><span>Live</span></div><div id="setup-player-list" class="player-list"></div></div>
+<div class="setup-card"><h3>Next</h3><p>We'll add role counts, player management, death visibility, rules, boundaries, and the Start Game system here.</p></div>
 </section>
 
 <section id="join-screen" class="screen">
