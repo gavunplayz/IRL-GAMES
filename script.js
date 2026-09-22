@@ -228,6 +228,7 @@ async function startGame() {
     await set(ref(db, "lobbies/" + currentLobbyCode + "/status"), "in_progress");
 
     if (status) status.textContent = "Game started. Private roles have been assigned.";
+    if (startButton) startButton.disabled = false;
   } catch (error) {
     console.error(error);
     if (status) status.textContent = error.message || "Could not start the game.";
@@ -692,7 +693,11 @@ async function renderGameScreen(lobby) {
     startGameNotesListener();
 
     const restartCard = document.getElementById("host-restart-card");
+    const restartButton = document.getElementById("restart-game-btn");
+    const restartStatus = document.getElementById("restart-game-status");
     if (restartCard) restartCard.style.display = canManagePlayers() ? "block" : "none";
+    if (restartButton && canManagePlayers()) restartButton.disabled = false;
+    if (restartStatus && canManagePlayers()) restartStatus.textContent = "";
 
     if (currentMode === "host" || currentMode === "host-player") {
       startGameActionListener();
