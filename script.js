@@ -201,7 +201,6 @@ async function startGame() {
   try {
     const assigned = buildAssignedRoles();
     const privateRoles = {};
-    const publicAssignments = {};
 
     players.forEach((player, index) => {
       const assignedRole = assigned[index];
@@ -209,9 +208,6 @@ async function startGame() {
         roleId: assignedRole.id,
         roleName: assignedRole.name,
         assignedAt: Date.now()
-      };
-      publicAssignments[player.uid] = {
-        roleId: assignedRole.id
       };
     });
 
@@ -743,6 +739,7 @@ async function leaveLobby() {
       const lobby = lobbySnapshot.val();
 
       if (lobby.hostUid === currentUser.uid) {
+        await remove(ref(db, "gamePrivate/" + currentLobbyCode));
         await remove(lobbyRef());
       } else {
         await remove(ref(db, "lobbies/" + currentLobbyCode + "/players/" + currentUser.uid));
