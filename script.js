@@ -80,7 +80,13 @@ function buildPlayerRow(player, allowManagement) {
 
   const badge = document.createElement("span");
   badge.className = "player-badge";
-  badge.textContent = player.host ? "HOST" : "PLAYER";
+  if (player.host) {
+    badge.textContent = "HOST";
+  } else if (player.uid === currentUser?.uid) {
+    badge.textContent = "YOU";
+  } else {
+    badge.textContent = "PLAYER";
+  }
   actions.appendChild(badge);
 
   if (allowManagement && !player.host && player.uid !== currentUser?.uid) {
@@ -88,6 +94,7 @@ function buildPlayerRow(player, allowManagement) {
     removeButton.type = "button";
     removeButton.className = "remove-player-button";
     removeButton.textContent = "Remove";
+    removeButton.setAttribute("aria-label", "Remove " + player.name);
     removeButton.addEventListener("click", () => removePlayer(player.uid, player.name));
     actions.appendChild(removeButton);
   }
