@@ -1418,7 +1418,7 @@ document.getElementById("join-form").addEventListener("submit", async event => {
   if (name.length > 20) {
     error.textContent = "Player names can be up to 20 characters.";
     return;
-  }  }
+  }
 
   error.textContent = "Joining...";
 
