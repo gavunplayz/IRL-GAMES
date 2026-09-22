@@ -4,11 +4,12 @@
 .host-player-name-screen-note{margin-top:10px;color:var(--muted);font-size:.82rem}
 
 .setup-card-description{margin:0 0 14px;color:var(--muted);line-height:1.55;font-size:.86rem}
-.setting-options{display:grid;gap:8px}
-.setting-option{display:flex;align-items:flex-start;gap:11px;padding:13px 14px;background:var(--panel-2);border:1px solid var(--border);border-radius:11px;cursor:pointer;transition:border-color .15s ease,background .15s ease}
-.setting-option:hover{border-color:var(--accent)}
-.setting-option input{margin:3px 0 0;accent-color:var(--accent)}
-.setting-option span{display:grid;gap:3px}
-.setting-option strong{font-size:.9rem}
-.setting-option small{color:var(--muted);font-size:.76rem;line-height:1.4}
+.death-visibility-control{padding:16px 14px 14px;background:var(--panel-2);border:1px solid var(--border);border-radius:12px}
+.death-visibility-labels{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;color:var(--muted);font-size:.72rem;font-weight:800;text-align:center}
+.death-visibility-labels span:first-child{text-align:left}
+.death-visibility-labels span:last-child{text-align:right}
+.death-visibility-slider{display:block;width:100%;margin:0;accent-color:var(--accent);cursor:pointer}
+.death-visibility-current{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px}
+.death-visibility-current span{color:var(--muted);font-size:.75rem}
+.death-visibility-current strong{font-size:.84rem;color:var(--accent-2)}
 .setting-status{margin:12px 0 0!important;color:var(--accent-2)!important;font-size:.78rem}
