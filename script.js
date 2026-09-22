@@ -63,11 +63,31 @@ function getDeathVisibilityLabel(value) {
   return "deaths are hidden";
 }
 
+function getDeathVisibilitySliderValue(value) {
+  if (value === "host") return 1;
+  if (value === "all") return 2;
+  return 0;
+}
+
+function getDeathVisibilityFromSliderValue(value) {
+  if (Number(value) === 1) return "host";
+  if (Number(value) === 2) return "all";
+  return "none";
+}
+
+function getDeathVisibilityCurrentLabel(value) {
+  if (value === "host") return "Host only";
+  if (value === "all") return "Everyone";
+  return "Nothing";
+}
+
 function renderDeathVisibility(value = DEFAULT_DEATH_VISIBILITY) {
   const selected = value === "host" || value === "all" ? value : DEFAULT_DEATH_VISIBILITY;
-  document.querySelectorAll('input[name="death-visibility"]').forEach(input => {
-    input.checked = input.value === selected;
-  });
+  const slider = document.getElementById("death-visibility-slider");
+  if (slider) slider.value = getDeathVisibilitySliderValue(selected);
+
+  const currentLabel = document.getElementById("death-visibility-current-label");
+  if (currentLabel) currentLabel.textContent = getDeathVisibilityCurrentLabel(selected);
 
   const status = document.getElementById("death-visibility-status");
   if (status) status.textContent = "Saved setting: " + getDeathVisibilityLabel(selected) + ".";
@@ -484,12 +504,19 @@ document.querySelectorAll(".game-card:not(.disabled)").forEach(button => {
 });
 
 
-document.querySelectorAll('input[name="death-visibility"]').forEach(input => {
-  input.addEventListener("change", () => {
-    if (!canManagePlayers()) return;
-    saveDeathVisibility(input.value);
+const deathVisibilitySlider = document.getElementById("death-visibility-slider");
+if (deathVisibilitySlider) {
+  deathVisibilitySlider.addEventListener("input", () => {
+    const value = getDeathVisibilityFromSliderValue(deathVisibilitySlider.value);
+    const currentLabel = document.getElementById("death-visibility-current-label");
+    if (currentLabel) currentLabel.textContent = getDeathVisibilityCurrentLabel(value);
   });
-});
+
+  deathVisibilitySlider.addEventListener("change", () => {
+    if (!canManagePlayers()) return;
+    saveDeathVisibility(getDeathVisibilityFromSliderValue(deathVisibilitySlider.value));
+  });
+}
 
 document.getElementById("continue-game-setup-btn").addEventListener("click", async () => {
   if (!currentUser || !currentLobbyCode || selectedGame !== "mm2") return;
