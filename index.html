@@ -9,7 +9,7 @@
 </head>
 <body>
 <main class="app-shell">
-<header class="topbar"><div class="brand"><span class="brand-mark">IRL</span><span>Games</span></div><span class="version">V0.3.5</span></header>
+<header class="topbar"><div class="brand"><span class="brand-mark">IRL</span><span>Games</span></div><span class="version">V0.3.6</span></header>
 
 <section id="home-screen" class="screen active">
 <div class="hero"><p class="eyebrow">REAL-LIFE GAME PLATFORM</p><h1>Play games.<br><span>In real life.</span></h1><p class="hero-text">Create a game, invite your friends, and give every player their own game screen.</p></div>
@@ -73,7 +73,26 @@
 <div><span>LOBBY</span><strong id="setup-lobby-code">------</strong></div>
 </div>
 <div class="setup-card"><div class="section-heading"><h3>Players</h3><span id="setup-player-management-status">Live</span></div><div id="setup-player-list" class="player-list"></div><p class="management-note">Manage who is in the lobby before assigning roles.</p></div>
-<div class="setup-card"><h3>Next</h3><p>Role counts, death visibility, rules, boundaries, and the Start Game system will be added next.</p></div>
+<div class="setup-card">
+<div class="section-heading"><h3>Game Settings</h3><span>V0.3.6</span></div>
+<p class="setup-card-description">Choose who can see player deaths during the game. This setting is saved with the lobby and will control death visibility when the gameplay system is added.</p>
+<div class="setting-options" role="radiogroup" aria-label="Death visibility">
+<label class="setting-option">
+<input type="radio" name="death-visibility" value="none" checked>
+<span><strong>Don't show deaths</strong><small>Deaths stay hidden from every screen.</small></span>
+</label>
+<label class="setting-option">
+<input type="radio" name="death-visibility" value="host">
+<span><strong>Show deaths on host screen</strong><small>Only the host screen will be able to show death status.</small></span>
+</label>
+<label class="setting-option">
+<input type="radio" name="death-visibility" value="all">
+<span><strong>Show deaths on all screens</strong><small>Every player screen will be able to show death status.</small></span>
+</label>
+</div>
+<p id="death-visibility-status" class="setting-status">Using the default: deaths are hidden.</p>
+</div>
+<div class="setup-card"><h3>Next</h3><p>Role configuration, private role data, rules, boundaries, and the Start Game system will be added in later V0.3 updates.</p></div>
 </section>
 
 <section id="join-screen" class="screen">
@@ -96,6 +115,6 @@
 </section>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script type="module" src="script.js?v=0.3.5"></script>
+<script type="module" src="script.js?v=0.3.6"></script>
 </body>
 </html>
