@@ -36,7 +36,7 @@
 <div class="join-link-wrap"><label for="join-link">Or type this link:</label><div class="join-link-row"><input id="join-link" type="text" readonly><button id="copy-link-btn" class="small-button">Copy</button></div></div>
 </div>
 <div class="lobby-status"><span class="status-dot"></span><span id="host-status">Connecting to Firebase...</span></div>
-<div class="host-players-card"><div class="section-heading"><h3>Players</h3><span id="host-player-count">0</span></div><div id="host-player-list" class="player-list"><p class="empty-state">No players have joined yet.</p></div></div>
+<div class="host-players-card"><div class="section-heading"><h3>Players</h3><span id="host-player-count">0</span></div><div id="host-player-list" class="player-list"><p class="empty-state">No players have joined yet.</p></div><p class="management-note">Players join with the lobby code or QR code. You can remove connected players from this screen.</p></div>
 <button id="enter-host-lobby-btn" class="primary-button">Open Game Setup</button>
 </section>
 
@@ -61,8 +61,8 @@
 <div><span>PLAYERS</span><strong id="setup-player-count">0</strong></div>
 <div><span>LOBBY</span><strong id="setup-lobby-code">------</strong></div>
 </div>
-<div class="setup-card"><div class="section-heading"><h3>Players</h3><span>Live</span></div><div id="setup-player-list" class="player-list"></div></div>
-<div class="setup-card"><h3>Next</h3><p>We'll add role counts, player management, death visibility, rules, boundaries, and the Start Game system here.</p></div>
+<div class="setup-card"><div class="section-heading"><h3>Players</h3><span id="setup-player-management-status">Live</span></div><div id="setup-player-list" class="player-list"></div><p class="management-note">Manage who is in the lobby before assigning roles.</p></div>
+<div class="setup-card"><h3>Next</h3><p>Role counts, death visibility, rules, boundaries, and the Start Game system will be added next.</p></div>
 </section>
 
 <section id="join-screen" class="screen">
