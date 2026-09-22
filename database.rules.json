@@ -3,16 +3,22 @@
     "lobbies": {
       "$lobbyId": {
         ".read": "auth != null",
-
         ".write": "auth != null && ((!data.exists() && newData.child('hostUid').val() === auth.uid) || (data.exists() && data.child('hostUid').val() === auth.uid) || (data.exists() && !newData.exists() && data.child('hostUid').val() === auth.uid))",
-
         ".validate": "newData.hasChildren(['hostUid', 'hostName', 'mode', 'status', 'createdAt', 'players']) && newData.child('hostUid').isString() && newData.child('hostName').isString() && newData.child('mode').isString() && newData.child('status').isString() && newData.child('createdAt').isNumber()",
-
         "players": {
           "$uid": {
             ".write": "auth != null && $uid === auth.uid",
             ".validate": "newData.hasChildren(['name', 'host', 'joinedAt']) && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 20 && newData.child('host').isBoolean() && newData.child('joinedAt').isNumber()"
           }
+        }
+      }
+    },
+    "gamePrivate": {
+      "$lobbyId": {
+        "$uid": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('lobbies').child($lobbyId).child('hostUid').val() === auth.uid)",
+          ".write": "auth != null && root.child('lobbies').child($lobbyId).child('hostUid').val() === auth.uid",
+          ".validate": "newData.hasChildren(['roleId', 'roleName', 'assignedAt']) && newData.child('roleId').isString() && newData.child('roleName').isString() && newData.child('assignedAt').isNumber()"
         }
       }
     }
