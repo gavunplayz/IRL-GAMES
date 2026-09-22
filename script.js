@@ -88,6 +88,213 @@ function getRoleConfigurationSummary(roles) {
   return unassigned + " player" + (unassigned === 1 ? " does" : "s do") + " not have a role yet.";
 }
 
+
+function getRoleConfigurationValidation(roles = getDefaultRoleConfiguration()) {
+  const normalized = normalizeRoleConfiguration(roles);
+  const playerCount = players.length;
+  const fixedRoles = normalized.filter(role => role.amount !== "auto");
+  const fixedCount = fixedRoles.reduce((sum, role) => sum + Number(role.amount || 0), 0);
+  const autoRoles = normalized.filter(role => role.amount === "auto");
+
+  if (playerCount < 1) {
+    return { valid: false, message: "Waiting for players." };
+  }
+
+  if (fixedCount > playerCount) {
+    return { valid: false, message: "You have assigned " + fixedCount + " fixed roles, but there are only " + playerCount + " players." };
+  }
+
+  if (autoRoles.length > 1) {
+    return { valid: false, message: "Only one role can use AUTO." };
+  }
+
+  if (autoRoles.length === 1 && playerCount - fixedCount < 0) {
+    return { valid: false, message: "AUTO cannot fill a negative number of players." };
+  }
+
+  if (autoRoles.length === 0 && fixedCount !== playerCount) {
+    return { valid: false, message: "Assign exactly " + playerCount + " players before starting, or set one role to AUTO." };
+  }
+
+  const murderer = normalized.find(role => role.id === "murderer");
+  if (!murderer || Number(murderer.amount || 0) < 1) {
+    return { valid: false, message: "MM2 needs at least 1 Murderer." };
+  }
+
+  return {
+    valid: true,
+    message: autoRoles.length === 1
+      ? "Ready to start. AUTO will fill " + (playerCount - fixedCount) + " remaining player" + (playerCount - fixedCount === 1 ? "" : "s") + "."
+      : "Ready to start. Every player has a fixed role."
+  };
+}
+
+function updateStartGameState() {
+  const status = document.getElementById("start-game-status");
+  const button = document.getElementById("start-game-btn");
+  if (!status || !button) return;
+
+  const validation = getRoleConfigurationValidation(
+    window.currentRoleConfiguration || getDefaultRoleConfiguration()
+  );
+
+  if (!canManagePlayers()) {
+    button.disabled = true;
+    status.className = "start-game-status";
+    status.textContent = "Only the host can start the game.";
+    return;
+  }
+
+  button.disabled = !validation.valid;
+  status.className = "start-game-status " + (validation.valid ? "ready" : "invalid");
+  status.textContent = validation.message;
+}
+
+function buildAssignedRoles() {
+  const roles = normalizeRoleConfiguration(
+    window.currentRoleConfiguration || getDefaultRoleConfiguration()
+  );
+  const validation = getRoleConfigurationValidation(roles);
+  if (!validation.valid) throw new Error(validation.message);
+
+  const pool = [];
+  roles.forEach(role => {
+    if (role.amount === "auto") return;
+    for (let i = 0; i < Number(role.amount); i++) {
+      pool.push({ id: role.id, name: role.name });
+    }
+  });
+
+  const fixedCount = pool.length;
+  const autoRole = roles.find(role => role.amount === "auto");
+  if (autoRole) {
+    for (let i = fixedCount; i < players.length; i++) {
+      pool.push({ id: autoRole.id, name: autoRole.name });
+    }
+  }
+
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+
+  return pool;
+}
+
+async function startGame() {
+  if (!canManagePlayers() || !currentUser || !currentLobbyCode) return;
+
+  const validation = getRoleConfigurationValidation(
+    window.currentRoleConfiguration || getDefaultRoleConfiguration()
+  );
+
+  if (!validation.valid) {
+    alert(validation.message);
+    return;
+  }
+
+  const startButton = document.getElementById("start-game-btn");
+  const status = document.getElementById("start-game-status");
+  if (startButton) startButton.disabled = true;
+  if (status) status.textContent = "Assigning private roles...";
+
+  try {
+    const assigned = buildAssignedRoles();
+    const privateRoles = {};
+    const publicAssignments = {};
+
+    players.forEach((player, index) => {
+      const assignedRole = assigned[index];
+      privateRoles[player.uid] = {
+        roleId: assignedRole.id,
+        roleName: assignedRole.name,
+        assignedAt: Date.now()
+      };
+      publicAssignments[player.uid] = {
+        roleId: assignedRole.id
+      };
+    });
+
+    await set(ref(db, "gamePrivate/" + currentLobbyCode), privateRoles);
+    await set(ref(db, "lobbies/" + currentLobbyCode + "/publicGame"), {
+      startedAt: Date.now(),
+      playerCount: players.length
+    });
+    await set(ref(db, "lobbies/" + currentLobbyCode + "/status"), "in_progress");
+
+    if (status) status.textContent = "Game started. Private roles have been assigned.";
+  } catch (error) {
+    console.error(error);
+    if (status) status.textContent = error.message || "Could not start the game.";
+    if (startButton) startButton.disabled = false;
+  }
+}
+
+async function loadMyRole() {
+  if (!currentUser || !currentLobbyCode) return null;
+  const snapshot = await get(ref(db, "gamePrivate/" + currentLobbyCode + "/" + currentUser.uid));
+  return snapshot.exists() ? snapshot.val() : null;
+}
+
+async function renderGameScreen(lobby) {
+  const roleName = document.getElementById("game-role-name");
+  const roleDescription = document.getElementById("game-role-description");
+  const gameStatus = document.getElementById("game-status-text");
+  const hostBoard = document.getElementById("host-role-board");
+  const hostList = document.getElementById("host-role-list");
+
+  if (!roleName || !roleDescription || !gameStatus) return;
+
+  gameStatus.textContent = "Game is live. Your private role is only shown on this device.";
+  hostBoard.style.display = "none";
+  hostList.innerHTML = "";
+
+  try {
+    const mine = await loadMyRole();
+
+    if (mine) {
+      roleName.textContent = mine.roleName;
+      roleDescription.textContent =
+        mine.roleId === "murderer" ? "Your objective is to eliminate the other players." :
+        mine.roleId === "sheriff" ? "Your objective is to identify and stop the Murderer." :
+        "Your objective is to survive the game and complete the future task system.";
+    } else if (currentMode === "host") {
+      roleName.textContent = "Host";
+      roleDescription.textContent = "You are hosting this game and are not assigned a player role.";
+    } else {
+      roleName.textContent = "Role unavailable";
+      roleDescription.textContent = "Your private role could not be loaded.";
+    }
+
+    if (currentMode === "host" && currentUser) {
+      const allRoles = await get(ref(db, "gamePrivate/" + currentLobbyCode));
+      const assignments = allRoles.val() || {};
+      hostBoard.style.display = "block";
+
+      players.forEach(player => {
+        const assignment = assignments[player.uid];
+        const row = document.createElement("div");
+        row.className = "player-row";
+
+        const name = document.createElement("span");
+        name.className = "player-name";
+        name.textContent = player.name;
+
+        const role = document.createElement("span");
+        role.className = "player-badge";
+        role.textContent = assignment?.roleName || "Unknown";
+
+        row.appendChild(name);
+        row.appendChild(role);
+        hostList.appendChild(row);
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    gameStatus.textContent = "Game is live, but the private role could not be loaded.";
+  }
+}
+
 function renderRoleConfiguration(roles = getDefaultRoleConfiguration()) {
   const list = document.getElementById("role-list");
   const status = document.getElementById("role-configuration-status");
@@ -139,6 +346,7 @@ function renderRoleConfiguration(roles = getDefaultRoleConfiguration()) {
   });
 
   if (status) status.textContent = getRoleConfigurationSummary(normalized);
+  updateStartGameState();
 }
 
 async function updateRoleAmount(roleId, amount) {
@@ -386,6 +594,11 @@ function listenToLobby() {
     renderDeathVisibility(lobby.settings?.mm2?.deathVisibility || DEFAULT_DEATH_VISIBILITY);
     window.currentRoleConfiguration = normalizeRoleConfiguration(lobby.settings?.mm2?.roles);
     renderRoleConfiguration(window.currentRoleConfiguration);
+
+    if (lobby.status === "in_progress") {
+      renderGameScreen(lobby);
+      showScreen("game-screen");
+    }
 
     if (currentMode === "player" && currentUser && !lobby.players[currentUser.uid]) {
       document.getElementById("join-error").textContent = "The host removed you from this lobby.";
@@ -670,11 +883,19 @@ document.getElementById("continue-game-setup-btn").addEventListener("click", asy
     document.getElementById("setup-player-count").textContent = players.length;
     document.getElementById("setup-lobby-code").textContent = currentLobbyCode;
     renderPlayers();
+    updateStartGameState();
     showScreen("game-setup-screen");
   } catch (error) {
     console.error(error);
     alert("Could not save the game selection. Please try again.");
   }
+});
+
+
+document.getElementById("start-game-btn").addEventListener("click", startGame);
+
+document.getElementById("game-leave-btn").addEventListener("click", async () => {
+  await leaveLobby();
 });
 
 document.getElementById("join-form").addEventListener("submit", async event => {
