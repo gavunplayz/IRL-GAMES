@@ -21,6 +21,7 @@ let currentMode = "host";
 let currentLobbyCode = "";
 let currentPlayerName = "";
 let currentUser = null;
+let pendingMode = "";
 let players = [];
 let selectedGame = "mm2";
 let lobbyUnsubscribe = null;
@@ -207,14 +208,14 @@ function listenToLobby() {
   });
 }
 
-async function createLobby(mode) {
+async function createLobby(mode, playerName = "") {
   if (!currentUser) {
     alert("Firebase is still connecting. Please try again in a moment.");
     return;
   }
 
   currentMode = mode;
-  currentPlayerName = mode === "host-player" ? "Host Player" : "";
+  currentPlayerName = mode === "host-player" ? playerName : "";
   currentLobbyCode = generateLobbyCode();
 
   const existing = await get(lobbyRef());
@@ -232,7 +233,7 @@ async function createLobby(mode) {
 
   if (mode === "host-player") {
     lobby.players[currentUser.uid] = {
-      name: "Host Player",
+      name: playerName,
       host: true,
       joinedAt: createdAt
     };
@@ -346,11 +347,55 @@ document.getElementById("join-lobby-btn").addEventListener("click", () => {
 
 document.querySelectorAll(".mode-card").forEach(button => {
   button.addEventListener("click", () => {
-    createLobby(button.dataset.mode).catch(error => {
+    const mode = button.dataset.mode;
+
+    if (mode === "host-player") {
+      pendingMode = mode;
+      document.getElementById("host-player-name-input").value = "";
+      document.getElementById("host-player-name-error").textContent = "";
+      showScreen("host-player-name-screen");
+      setTimeout(() => document.getElementById("host-player-name-input").focus(), 0);
+      return;
+    }
+
+    createLobby(mode).catch(error => {
       console.error(error);
       document.getElementById("host-status").textContent = "Could not create the lobby.";
     });
   });
+});
+
+document.getElementById("host-player-name-form").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const input = document.getElementById("host-player-name-input");
+  const error = document.getElementById("host-player-name-error");
+  const name = input.value.trim();
+
+  if (pendingMode !== "host-player") return;
+
+  if (!name) {
+    error.textContent = "Enter a player name.";
+    input.focus();
+    return;
+  }
+
+  if (name.length > 20) {
+    error.textContent = "Player names can be up to 20 characters.";
+    input.focus();
+    return;
+  }
+
+  error.textContent = "Creating lobby...";
+
+  try {
+    await createLobby("host-player", name);
+    error.textContent = "";
+    pendingMode = "";
+  } catch (createError) {
+    console.error(createError);
+    error.textContent = createError.message || "Could not create the lobby.";
+  }
 });
 
 document.querySelectorAll("[data-back]").forEach(button => {
