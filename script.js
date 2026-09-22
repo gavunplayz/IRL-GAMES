@@ -34,6 +34,7 @@ let gameDeaths = {};
 let myGameDeath = null;
 let myGameRole = null;
 const processedGameActions = new Set();
+let gameRenderToken = 0;
 
 const DEFAULT_DEATH_VISIBILITY = "none";
 
@@ -632,6 +633,7 @@ function startGameActionListener() {
 }
 
 async function renderGameScreen(lobby) {
+  const renderToken = ++gameRenderToken;
   const roleName = document.getElementById("game-role-name");
   const roleDescription = document.getElementById("game-role-description");
   const gameStatus = document.getElementById("game-status-text");
@@ -646,6 +648,7 @@ async function renderGameScreen(lobby) {
 
   try {
     const mine = await loadMyRole();
+    if (renderToken !== gameRenderToken || lobby.status !== "in_progress") return;
     myGameRole = mine;
 
     if (mine) {
@@ -667,6 +670,7 @@ async function renderGameScreen(lobby) {
 
     if (currentMode === "host" && currentUser) {
       const allRoles = await get(ref(db, "gamePrivate/" + currentLobbyCode));
+      if (renderToken !== gameRenderToken || lobby.status !== "in_progress") return;
       const assignments = allRoles.val() || {};
       hostBoard.style.display = "block";
 
@@ -1012,6 +1016,7 @@ function listenToLobby() {
       renderGameScreen(lobby);
       showScreen("game-screen");
     } else if (lobby.status === "waiting" && document.getElementById("game-screen").classList.contains("active")) {
+      gameRenderToken++;
       stopGameDeathListeners();
       stopGameKillsListener();
       stopGameNotesListener();
@@ -1211,25 +1216,41 @@ async function restartGame() {
   if (button) button.disabled = true;
   if (status) status.textContent = "Restarting round...";
 
-  try {
-    await remove(ref(db, "gamePrivate/" + currentLobbyCode));
-    await remove(ref(db, "gameState/" + currentLobbyCode));
-    await remove(ref(db, "gameActions/" + currentLobbyCode));
-    await remove(ref(db, "lobbies/" + currentLobbyCode + "/publicGame"));
-    await set(ref(db, "lobbies/" + currentLobbyCode + "/status"), "waiting");
+  const lobbyCode = currentLobbyCode;
 
+  try {
+    // Invalidate any async render from the previous round.
+    gameRenderToken++;
+
+    // Stop all round-specific listeners immediately.
     stopGameDeathListeners();
     stopGameKillsListener();
     stopGameNotesListener();
+    if (gameActionUnsubscribe) {
+      gameActionUnsubscribe();
+      gameActionUnsubscribe = null;
+    }
     processedGameActions.clear();
     gameDeaths = {};
     myGameDeath = null;
     myGameRole = null;
 
+    // Reset all round data and lobby status atomically.
+    const updates = {};
+    updates["gamePrivate/" + lobbyCode] = null;
+    updates["gameState/" + lobbyCode] = null;
+    updates["gameActions/" + lobbyCode] = null;
+    updates["lobbies/" + lobbyCode + "/publicGame"] = null;
+    updates["lobbies/" + lobbyCode + "/status"] = "waiting";
+
+    await update(ref(db), updates);
+
     if (status) status.textContent = "Round reset. Configure the next round and start when ready.";
   } catch (error) {
-    console.error(error);
-    if (status) status.textContent = "Could not restart the round. Please try again.";
+    console.error("Could not restart round:", error);
+    if (status) status.textContent = error?.message
+      ? "Could not restart the round: " + error.message
+      : "Could not restart the round. Please try again.";
     if (button) button.disabled = false;
   }
 }
@@ -1398,34 +1419,3 @@ document.getElementById("join-form").addEventListener("submit", async event => {
     error.textContent = "Player names can be up to 20 characters.";
     return;
   }
-
-  error.textContent = "Joining...";
-
-  try {
-    await joinLobby(code, name);
-    error.textContent = "";
-  } catch (joinError) {
-    console.error(joinError);
-    error.textContent = joinError.message || "Could not join that lobby.";
-  }
-});
-
-const params = new URLSearchParams(window.location.search);
-const joinCode = params.get("join");
-
-onAuthStateChanged(auth, user => {
-  currentUser = user;
-  if (user) console.log("Firebase anonymous auth ready:", user.uid);
-});
-
-signInAnonymously(auth).catch(error => {
-  console.error("Firebase anonymous sign-in failed:", error);
-  document.getElementById("host-status").textContent = "Firebase authentication is not enabled yet.";
-});
-
-document.querySelector('#lobby-screen .back-button').addEventListener("click", leaveLobby);
-
-if (joinCode) {
-  document.getElementById("lobby-code-input").value = joinCode.toUpperCase();
-  showScreen("join-screen");
-}
