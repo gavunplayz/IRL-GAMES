@@ -9,7 +9,7 @@
 </head>
 <body>
 <main class="app-shell">
-<header class="topbar"><div class="brand"><span class="brand-mark">IRL</span><span>Games</span></div><span class="version">V0.3.9.2</span></header>
+<header class="topbar"><div class="brand"><span class="brand-mark">IRL</span><span>Games</span></div><span class="version">V0.3.9.3</span></header>
 
 <section id="home-screen" class="screen active">
 <div class="hero"><p class="eyebrow">REAL-LIFE GAME PLATFORM</p><h1>Play games.<br><span>In real life.</span></h1><p class="hero-text">Create a game, invite your friends, and give every player their own game screen.</p></div>
@@ -74,7 +74,7 @@
 </div>
 <div class="setup-card"><div class="section-heading"><h3>Players</h3><span id="setup-player-management-status">Live</span></div><div id="setup-player-list" class="player-list"></div><p class="management-note">Manage who is in the lobby before assigning roles.</p></div>
 <div class="setup-card">
-<div class="section-heading"><h3>Game Settings</h3><span>V0.3.9.2</span></div>
+<div class="section-heading"><h3>Game Settings</h3><span>V0.3.9.3</span></div>
 <p class="setup-card-description">Choose who can see player deaths during the game. This setting is saved with the lobby and will control death visibility when the gameplay system is added.</p>
 <div class="death-visibility-control">
 <div class="death-visibility-labels" aria-hidden="true">
@@ -95,7 +95,7 @@
 <p class="role-save-note">Role counts are saved with this lobby. Actual private role assignment will happen when the game-start system is added.</p>
 </div>
 <div class="setup-card start-game-card">
-<div class="section-heading"><h3>Start Game</h3><span>V0.3.9.2</span></div>
+<div class="section-heading"><h3>Start Game</h3><span>V0.3.9.3</span></div>
 <p class="setup-card-description">When the setup is valid, the host can assign the configured roles privately and start the MM2 session.</p>
 <div id="start-game-status" class="start-game-status">Checking game setup...</div>
 <button id="start-game-btn" class="primary-button" type="button">Start Game</button>
@@ -129,6 +129,23 @@
 <p class="setup-card-description">Host view only. Players cannot see this list.</p>
 <div id="host-role-list" class="player-list"></div>
 </div>
+<div id="murderer-kills-card" class="setup-card murderer-kills-card">
+<div class="section-heading"><h3>Players You Killed</h3><span>MURDERER</span></div>
+<p class="setup-card-description">Only the Murderer sees this list. It tracks the players you personally killed during this round.</p>
+<div id="murderer-kill-list" class="game-kill-list"><p class="empty-state">No One</p></div>
+</div>
+<div class="setup-card game-notes-card">
+<div class="section-heading"><h3>Notes</h3><span>PRIVATE</span></div>
+<p class="setup-card-description">Write down anything you are thinking during the game. Your notes are private to this device/player.</p>
+<textarea id="game-notes" class="game-notes-input" maxlength="5000" placeholder="Write your notes here..."></textarea>
+<div class="game-notes-footer"><span id="game-notes-status" class="setting-status"></span><button id="save-game-notes-btn" class="secondary-button game-notes-save" type="button">Save Notes</button></div>
+</div>
+<div id="host-restart-card" class="setup-card host-restart-card">
+<div class="section-heading"><h3>Round Controls</h3><span>HOST</span></div>
+<p class="setup-card-description">When the round is over, restart it to clear the roles, deaths, and actions while keeping everyone in the lobby.</p>
+<button id="restart-game-btn" class="primary-button" type="button">Restart Round</button>
+<p id="restart-game-status" class="setting-status"></p>
+</div>
 <div class="setup-card"><h3>Game Info</h3><p>The live rules, boundaries, tasks, events, death feed, and other game systems will be added as the MM2 gameplay layer grows.</p></div>
 </section>
 
@@ -152,6 +169,6 @@
 </section>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script type="module" src="script.js?v=0.3.9.2"></script>
+<script type="module" src="script.js?v=0.3.9.3"></script>
 </body>
 </html>
