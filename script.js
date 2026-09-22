@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-import { getDatabase, ref, set, get, onValue, onDisconnect, remove, push } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+import { getDatabase, ref, set, get, onValue, onDisconnect, remove, push, update } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC_Ku2b5gdyzoSTKJWEhsHK_qYeRzDoiP0",
@@ -997,6 +997,12 @@ async function joinLobby(code, name) {
 
 async function leaveLobby() {
   stopLobbyListener();
+  stopGameDeathListeners();
+  if (gameActionUnsubscribe) {
+    gameActionUnsubscribe();
+    gameActionUnsubscribe = null;
+  }
+  processedGameActions.clear();
 
   if (!currentLobbyCode || !currentUser) {
     showScreen("home-screen");
