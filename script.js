@@ -48,6 +48,55 @@ function lobbyRef() {
   return ref(db, "lobbies/" + currentLobbyCode);
 }
 
+
+function canManagePlayers() {
+  return currentMode === "host" || currentMode === "host-player";
+}
+
+async function removePlayer(uid, name) {
+  if (!canManagePlayers() || !currentLobbyCode || !currentUser || uid === currentUser.uid) return;
+  const player = players.find(item => item.uid === uid);
+  if (!player) return;
+  if (!confirm("Remove " + name + " from this lobby?")) return;
+
+  try {
+    await remove(ref(db, "lobbies/" + currentLobbyCode + "/players/" + uid));
+  } catch (error) {
+    console.error(error);
+    alert("Could not remove that player. Please try again.");
+  }
+}
+
+function buildPlayerRow(player, allowManagement) {
+  const row = document.createElement("div");
+  row.className = "player-row";
+
+  const name = document.createElement("span");
+  name.className = "player-name";
+  name.textContent = player.name;
+
+  const actions = document.createElement("span");
+  actions.className = "player-row-actions";
+
+  const badge = document.createElement("span");
+  badge.className = "player-badge";
+  badge.textContent = player.host ? "HOST" : "PLAYER";
+  actions.appendChild(badge);
+
+  if (allowManagement && !player.host && player.uid !== currentUser?.uid) {
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "remove-player-button";
+    removeButton.textContent = "Remove";
+    removeButton.addEventListener("click", () => removePlayer(player.uid, player.name));
+    actions.appendChild(removeButton);
+  }
+
+  row.appendChild(name);
+  row.appendChild(actions);
+  return row;
+}
+
 function renderPlayers() {
   const lists = [document.getElementById("host-player-list"), document.getElementById("player-list")];
 
@@ -61,16 +110,13 @@ function renderPlayers() {
     }
 
     players.forEach(player => {
-      const row = document.createElement("div");
-      row.className = "player-row";
-      row.innerHTML = '<span class="player-name"></span><span class="player-badge"></span>';
-      row.querySelector(".player-name").textContent = player.name;
-      row.querySelector(".player-badge").textContent = player.host ? "HOST" : "PLAYER";
-      list.appendChild(row);
+      list.appendChild(buildPlayerRow(player, list.id === "host-player-list" && canManagePlayers()));
     });
   });
 
   document.getElementById("host-player-count").textContent = players.length;
+  const setupStatus = document.getElementById("setup-player-management-status");
+  if (setupStatus) setupStatus.textContent = players.length === 1 ? "1 player" : players.length + " players";
   document.getElementById("player-count").textContent = players.length;
 
   const setupCount = document.getElementById("setup-player-count");
@@ -86,12 +132,7 @@ function renderPlayers() {
       setupList.innerHTML = '<p class="empty-state">No players have joined yet.</p>';
     } else {
       players.forEach(player => {
-        const row = document.createElement("div");
-        row.className = "player-row";
-        row.innerHTML = '<span class="player-name"></span><span class="player-badge"></span>';
-        row.querySelector(".player-name").textContent = player.name;
-        row.querySelector(".player-badge").textContent = player.host ? "HOST" : "PLAYER";
-        setupList.appendChild(row);
+        setupList.appendChild(buildPlayerRow(player, canManagePlayers()));
       });
     }
   }
