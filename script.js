@@ -1418,4 +1418,35 @@ document.getElementById("join-form").addEventListener("submit", async event => {
   if (name.length > 20) {
     error.textContent = "Player names can be up to 20 characters.";
     return;
+  }  }
+
+  error.textContent = "Joining...";
+
+  try {
+    await joinLobby(code, name);
+    error.textContent = "";
+  } catch (joinError) {
+    console.error(joinError);
+    error.textContent = joinError.message || "Could not join that lobby.";
   }
+});
+
+const params = new URLSearchParams(window.location.search);
+const joinCode = params.get("join");
+
+onAuthStateChanged(auth, user => {
+  currentUser = user;
+  if (user) console.log("Firebase anonymous auth ready:", user.uid);
+});
+
+signInAnonymously(auth).catch(error => {
+  console.error("Firebase anonymous sign-in failed:", error);
+  document.getElementById("host-status").textContent = "Firebase authentication is not enabled yet.";
+});
+
+document.querySelector('#lobby-screen .back-button').addEventListener("click", leaveLobby);
+
+if (joinCode) {
+  document.getElementById("lobby-code-input").value = joinCode.toUpperCase();
+  showScreen("join-screen");
+}
