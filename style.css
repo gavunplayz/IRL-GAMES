@@ -27,3 +27,15 @@
 .death-visibility-labels{column-gap:16px}
 .death-visibility-labels span{white-space:nowrap}
 .death-visibility-current strong{margin-left:auto}
+
+.start-game-card{border-color:rgba(139,92,246,.35)}
+.start-game-status{margin:0 0 12px;padding:11px 12px;background:var(--panel-2);border:1px solid var(--border);border-radius:10px;color:var(--muted);font-size:.78rem;line-height:1.45}
+.start-game-status.ready{color:var(--success)}
+.start-game-status.invalid{color:var(--danger)}
+.start-game-card .primary-button{width:100%}
+.start-game-card .primary-button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.game-role-card{padding:26px;margin-bottom:12px;background:var(--panel);border:1px solid var(--accent);border-radius:18px;box-shadow:0 0 30px rgba(139,92,246,.08)}
+.game-role-card h3{margin:0 0 8px;font-size:clamp(2rem,8vw,3.2rem);letter-spacing:-.05em}
+.game-role-card p{margin:0;color:var(--muted);line-height:1.55}
+.game-role-card .eyebrow{margin-bottom:8px}
+.host-role-board{display:block}
