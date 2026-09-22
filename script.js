@@ -1169,6 +1169,7 @@ document.getElementById("continue-game-setup-btn").addEventListener("click", asy
 
 
 document.getElementById("start-game-btn").addEventListener("click", startGame);
+document.getElementById("game-action-btn").addEventListener("click", submitGameAction);
 
 document.getElementById("game-leave-btn").addEventListener("click", async () => {
   await leaveLobby();
