@@ -13,3 +13,17 @@
 .death-visibility-current span{color:var(--muted);font-size:.75rem}
 .death-visibility-current strong{font-size:.84rem;color:var(--accent-2)}
 .setting-status{margin:12px 0 0!important;color:var(--accent-2)!important;font-size:.78rem}
+
+.role-list{display:grid;gap:9px}
+.role-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 14px;background:var(--panel-2);border:1px solid var(--border);border-radius:11px}
+.role-info{min-width:0}
+.role-name{display:block;font-weight:800}
+.role-description{display:block;margin-top:3px;color:var(--muted);font-size:.74rem}
+.role-amount{width:112px;flex:0 0 112px;padding:10px 9px;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:9px;outline:none;font-weight:800}
+.role-amount:focus{border-color:var(--accent)}
+.role-configuration-status{margin-top:12px;padding:11px 12px;border-radius:10px;background:rgba(139,92,246,.08);color:var(--accent-2);font-size:.78rem;line-height:1.45}
+.role-save-note{margin-top:10px!important;font-size:.74rem}
+@media(max-width:480px){.role-row{align-items:flex-start}.role-amount{width:96px;flex-basis:96px}}
+.death-visibility-labels{column-gap:16px}
+.death-visibility-labels span{white-space:nowrap}
+.death-visibility-current strong{margin-left:auto}
