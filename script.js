@@ -54,6 +54,13 @@ function canManagePlayers() {
   return currentMode === "host" || currentMode === "host-player";
 }
 
+function updateManagementSummary() {
+  const count = players.length;
+  const text = count === 0 ? "No players connected" : count === 1 ? "1 player connected" : count + " players connected";
+  const hostStatus = document.getElementById("host-status");
+  if (hostStatus && currentLobbyCode) hostStatus.textContent = text + ".";
+}
+
 async function removePlayer(uid, name) {
   if (!canManagePlayers() || !currentLobbyCode || !currentUser || uid === currentUser.uid) return;
   const player = players.find(item => item.uid === uid);
@@ -123,6 +130,7 @@ function renderPlayers() {
   });
 
   document.getElementById("host-player-count").textContent = players.length;
+  updateManagementSummary();
   const setupStatus = document.getElementById("setup-player-management-status");
   if (setupStatus) setupStatus.textContent = players.length === 1 ? "1 player" : players.length + " players";
   document.getElementById("player-count").textContent = players.length;
