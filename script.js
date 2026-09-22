@@ -28,6 +28,147 @@ let lobbyUnsubscribe = null;
 
 const DEFAULT_DEATH_VISIBILITY = "none";
 
+const DEFAULT_MM2_ROLES = [
+  { id: "murderer", name: "Murderer", description: "Eliminate the other players.", defaultAmount: "1" },
+  { id: "sheriff", name: "Sheriff", description: "Work to identify and stop the Murderer.", defaultAmount: "1" },
+  { id: "civilian", name: "Civilian", description: "Complete the game without a special role.", defaultAmount: "auto" }
+];
+
+function getDefaultRoleConfiguration() {
+  return DEFAULT_MM2_ROLES.map(role => ({
+    id: role.id,
+    name: role.name,
+    amount: role.defaultAmount
+  }));
+}
+
+function normalizeRoleConfiguration(roles) {
+  const source = Array.isArray(roles) ? roles : [];
+  const normalized = DEFAULT_MM2_ROLES.map(defaultRole => {
+    const saved = source.find(role => role && role.id === defaultRole.id);
+    let amount = saved?.amount ?? defaultRole.defaultAmount;
+
+    if (amount !== "auto") {
+      const number = Number(amount);
+      amount = Number.isFinite(number) && number >= 0 ? String(Math.floor(number)) : defaultRole.defaultAmount;
+    }
+
+    return {
+      id: defaultRole.id,
+      name: defaultRole.name,
+      amount
+    };
+  });
+
+  return normalized;
+}
+
+function getRoleConfigurationSummary(roles) {
+  const fixedCount = roles
+    .filter(role => role.amount !== "auto")
+    .reduce((sum, role) => sum + Number(role.amount || 0), 0);
+  const hasAuto = roles.some(role => role.amount === "auto");
+  const playerCount = players.length;
+
+  if (fixedCount > playerCount) {
+    const extra = fixedCount - playerCount;
+    return "Too many fixed roles by " + extra + " player" + (extra === 1 ? "" : "s") + ".";
+  }
+
+  if (hasAuto) {
+    const remaining = playerCount - fixedCount;
+    return "AUTO will fill the remaining " + remaining + " player" + (remaining === 1 ? "" : "s") + ".";
+  }
+
+  if (fixedCount === playerCount) {
+    return "All " + playerCount + " player" + (playerCount === 1 ? "" : "s") + " have a fixed role.";
+  }
+
+  const unassigned = playerCount - fixedCount;
+  return unassigned + " player" + (unassigned === 1 ? " does" : "s do") + " not have a role yet.";
+}
+
+function renderRoleConfiguration(roles = getDefaultRoleConfiguration()) {
+  const list = document.getElementById("role-list");
+  const status = document.getElementById("role-configuration-status");
+  if (!list) return;
+
+  const normalized = normalizeRoleConfiguration(roles);
+  list.innerHTML = "";
+
+  normalized.forEach(role => {
+    const row = document.createElement("div");
+    row.className = "role-row";
+
+    const info = document.createElement("div");
+    info.className = "role-info";
+
+    const name = document.createElement("span");
+    name.className = "role-name";
+    name.textContent = role.name;
+
+    const description = document.createElement("span");
+    description.className = "role-description";
+    description.textContent = DEFAULT_MM2_ROLES.find(item => item.id === role.id)?.description || "";
+
+    info.appendChild(name);
+    info.appendChild(description);
+
+    const amount = document.createElement("select");
+    amount.className = "role-amount";
+    amount.setAttribute("aria-label", role.name + " player count");
+
+    for (let i = 0; i <= Math.max(12, players.length); i++) {
+      const option = document.createElement("option");
+      option.value = String(i);
+      option.textContent = String(i);
+      amount.appendChild(option);
+    }
+
+    const autoOption = document.createElement("option");
+    autoOption.value = "auto";
+    autoOption.textContent = "AUTO";
+    amount.appendChild(autoOption);
+
+    amount.value = role.amount;
+    amount.addEventListener("change", () => updateRoleAmount(role.id, amount.value));
+
+    row.appendChild(info);
+    row.appendChild(amount);
+    list.appendChild(row);
+  });
+
+  if (status) status.textContent = getRoleConfigurationSummary(normalized);
+}
+
+async function updateRoleAmount(roleId, amount) {
+  if (!canManagePlayers() || !currentUser || !currentLobbyCode) return;
+
+  const currentRoles = normalizeRoleConfiguration(
+    window.currentRoleConfiguration || getDefaultRoleConfiguration()
+  );
+
+  const updated = currentRoles.map(role =>
+    role.id === roleId ? { ...role, amount } : role
+  );
+
+  window.currentRoleConfiguration = updated;
+  renderRoleConfiguration(updated);
+
+  const status = document.getElementById("role-configuration-status");
+  if (status) status.textContent = "Saving role configuration...";
+
+  try {
+    await set(ref(db, "lobbies/" + currentLobbyCode + "/settings/mm2/roles"), updated);
+    if (status) status.textContent = getRoleConfigurationSummary(updated);
+  } catch (error) {
+    console.error(error);
+    if (status) status.textContent = "Could not save role configuration. Please try again.";
+  }
+}
+
+window.currentRoleConfiguration = getDefaultRoleConfiguration();
+
 function showScreen(id) {
   screens.forEach(s => s.classList.remove("active"));
   const target = document.getElementById(id);
@@ -243,6 +384,8 @@ function listenToLobby() {
     players = Object.entries(lobby.players || {}).map(([uid, player]) => ({ uid, ...player }));
 
     renderDeathVisibility(lobby.settings?.mm2?.deathVisibility || DEFAULT_DEATH_VISIBILITY);
+    window.currentRoleConfiguration = normalizeRoleConfiguration(lobby.settings?.mm2?.roles);
+    renderRoleConfiguration(window.currentRoleConfiguration);
 
     if (currentMode === "player" && currentUser && !lobby.players[currentUser.uid]) {
       document.getElementById("join-error").textContent = "The host removed you from this lobby.";
