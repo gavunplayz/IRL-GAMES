@@ -9,7 +9,7 @@
 </head>
 <body>
 <main class="app-shell">
-<header class="topbar"><div class="brand"><span class="brand-mark">IRL</span><span>Games</span></div><span class="version">V0.3.9</span></header>
+<header class="topbar"><div class="brand"><span class="brand-mark">IRL</span><span>Games</span></div><span class="version">V0.3.9.1</span></header>
 
 <section id="home-screen" class="screen active">
 <div class="hero"><p class="eyebrow">REAL-LIFE GAME PLATFORM</p><h1>Play games.<br><span>In real life.</span></h1><p class="hero-text">Create a game, invite your friends, and give every player their own game screen.</p></div>
@@ -74,7 +74,7 @@
 </div>
 <div class="setup-card"><div class="section-heading"><h3>Players</h3><span id="setup-player-management-status">Live</span></div><div id="setup-player-list" class="player-list"></div><p class="management-note">Manage who is in the lobby before assigning roles.</p></div>
 <div class="setup-card">
-<div class="section-heading"><h3>Game Settings</h3><span>V0.3.9</span></div>
+<div class="section-heading"><h3>Game Settings</h3><span>V0.3.9.1</span></div>
 <p class="setup-card-description">Choose who can see player deaths during the game. This setting is saved with the lobby and will control death visibility when the gameplay system is added.</p>
 <div class="death-visibility-control">
 <div class="death-visibility-labels" aria-hidden="true">
@@ -95,7 +95,7 @@
 <p class="role-save-note">Role counts are saved with this lobby. Actual private role assignment will happen when the game-start system is added.</p>
 </div>
 <div class="setup-card start-game-card">
-<div class="section-heading"><h3>Start Game</h3><span>V0.3.9</span></div>
+<div class="section-heading"><h3>Start Game</h3><span>V0.3.9.1</span></div>
 <p class="setup-card-description">When the setup is valid, the host can assign the configured roles privately and start the MM2 session.</p>
 <div id="start-game-status" class="start-game-status">Checking game setup...</div>
 <button id="start-game-btn" class="primary-button" type="button">Start Game</button>
@@ -109,6 +109,20 @@
 <div class="eyebrow">YOUR ROLE</div>
 <h3 id="game-role-name">Loading...</h3>
 <p id="game-role-description">Your role information will appear here.</p>
+</div>
+<div class="setup-card game-players-card">
+<div class="section-heading"><h3>Players</h3><span id="game-player-status-label">LIVE</span></div>
+<p class="setup-card-description">Player status stays available during the game. Death markings are shown according to the host setting, while your own status is always visible on your device.</p>
+<div id="game-player-list" class="game-player-list"></div>
+</div>
+<div id="game-action-card" class="setup-card game-action-card">
+<div class="section-heading"><h3>Role Action</h3><span id="game-action-role-label">ROLE</span></div>
+<p id="game-action-description" class="setup-card-description">Choose a player to mark as dead.</p>
+<div class="game-action-row">
+<select id="game-target-select" class="game-target-select" aria-label="Choose a player"></select>
+<button id="game-action-btn" class="primary-button" type="button">Mark Player Dead</button>
+</div>
+<p id="game-action-status" class="setting-status"></p>
 </div>
 <div id="host-role-board" class="setup-card host-role-board">
 <div class="section-heading"><h3>Role Assignments</h3><span>HOST</span></div>
@@ -138,6 +152,6 @@
 </section>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script type="module" src="script.js?v=0.3.9"></script>
+<script type="module" src="script.js?v=0.3.9.1"></script>
 </body>
 </html>
