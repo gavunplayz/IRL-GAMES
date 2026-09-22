@@ -26,6 +26,8 @@ let players = [];
 let selectedGame = "mm2";
 let lobbyUnsubscribe = null;
 
+const DEFAULT_DEATH_VISIBILITY = "none";
+
 function showScreen(id) {
   screens.forEach(s => s.classList.remove("active"));
   const target = document.getElementById(id);
@@ -53,6 +55,42 @@ function lobbyRef() {
 function canManagePlayers() {
   return currentMode === "host" || currentMode === "host-player";
 }
+
+
+function getDeathVisibilityLabel(value) {
+  if (value === "host") return "deaths are shown on the host screen";
+  if (value === "all") return "deaths are shown on all screens";
+  return "deaths are hidden";
+}
+
+function renderDeathVisibility(value = DEFAULT_DEATH_VISIBILITY) {
+  const selected = value === "host" || value === "all" ? value : DEFAULT_DEATH_VISIBILITY;
+  document.querySelectorAll('input[name="death-visibility"]').forEach(input => {
+    input.checked = input.value === selected;
+  });
+
+  const status = document.getElementById("death-visibility-status");
+  if (status) status.textContent = "Saved setting: " + getDeathVisibilityLabel(selected) + ".";
+}
+
+async function saveDeathVisibility(value) {
+  if (!canManagePlayers() || !currentUser || !currentLobbyCode) return;
+
+  const allowed = ["none", "host", "all"];
+  if (!allowed.includes(value)) return;
+
+  const status = document.getElementById("death-visibility-status");
+  if (status) status.textContent = "Saving...";
+
+  try {
+    await set(ref(db, "lobbies/" + currentLobbyCode + "/settings/mm2/deathVisibility"), value);
+    if (status) status.textContent = "Saved setting: " + getDeathVisibilityLabel(value) + ".";
+  } catch (error) {
+    console.error(error);
+    if (status) status.textContent = "Could not save this setting. Please try again.";
+  }
+}
+
 
 function updateManagementSummary() {
   const count = players.length;
@@ -183,6 +221,8 @@ function listenToLobby() {
     }
 
     players = Object.entries(lobby.players || {}).map(([uid, player]) => ({ uid, ...player }));
+
+    renderDeathVisibility(lobby.settings?.mm2?.deathVisibility || DEFAULT_DEATH_VISIBILITY);
 
     if (currentMode === "player" && currentUser && !lobby.players[currentUser.uid]) {
       document.getElementById("join-error").textContent = "The host removed you from this lobby.";
@@ -440,6 +480,14 @@ document.querySelectorAll(".game-card:not(.disabled)").forEach(button => {
     const description = button.querySelector("small")?.textContent || "";
     document.getElementById("selected-game-name").textContent = name;
     document.getElementById("selected-game-description").textContent = description;
+  });
+});
+
+
+document.querySelectorAll('input[name="death-visibility"]').forEach(input => {
+  input.addEventListener("change", () => {
+    if (!canManagePlayers()) return;
+    saveDeathVisibility(input.value);
   });
 });
 
