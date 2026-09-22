@@ -36,6 +36,15 @@
         }
       }
     },
+    "gameNotes": {
+      "$lobbyId": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.hasChildren(['text', 'updatedAt']) && newData.child('text').isString() && newData.child('text').val().length <= 5000 && newData.child('updatedAt').isNumber()"
+        }
+      }
+    },
     "gameState": {
       "$lobbyId": {
         "deaths": {
