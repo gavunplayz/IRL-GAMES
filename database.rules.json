@@ -27,6 +27,7 @@
     "gameActions": {
       "$lobbyId": {
         ".read": "auth != null && root.child('lobbies').child($lobbyId).child('hostUid').val() === auth.uid",
+        ".write": "auth != null && root.child('lobbies').child($lobbyId).child('hostUid').val() === auth.uid",
         "$actorUid": {
           ".read": "auth != null && (auth.uid === $actorUid || root.child('lobbies').child($lobbyId).child('hostUid').val() === auth.uid)",
           "$actionId": {
@@ -48,6 +49,7 @@
     },
     "gameState": {
       "$lobbyId": {
+        ".write": "auth != null && root.child('lobbies').child($lobbyId).child('hostUid').val() === auth.uid",
         "deaths": {
           ".read": "auth != null && (root.child('lobbies').child($lobbyId).child('hostUid').val() === auth.uid || root.child('lobbies').child($lobbyId).child('settings').child('mm2').child('deathVisibility').val() === 'all')",
           "$uid": {
