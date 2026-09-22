@@ -2,7 +2,7 @@
 
 A customizable real-life game platform where every player can use their own device as a game screen.
 
-## Current version: V0.3.9.1
+## Current version: V0.3.9.2
 
 V0.3 is the first major multiplayer gameplay foundation for IRL Games. The platform can now create real online lobbies, assign private roles, start an MM2 session, track player deaths, and process Murderer/Sheriff actions.
 
