@@ -9,7 +9,7 @@
 </head>
 <body>
 <main class="app-shell">
-<header class="topbar"><div class="brand"><span class="brand-mark">IRL</span><span>Games</span></div><span class="version">V0.3.7</span></header>
+<header class="topbar"><div class="brand"><span class="brand-mark">IRL</span><span>Games</span></div><span class="version">V0.3.9</span></header>
 
 <section id="home-screen" class="screen active">
 <div class="hero"><p class="eyebrow">REAL-LIFE GAME PLATFORM</p><h1>Play games.<br><span>In real life.</span></h1><p class="hero-text">Create a game, invite your friends, and give every player their own game screen.</p></div>
@@ -66,7 +66,7 @@
 
 <section id="game-setup-screen" class="screen">
 <button class="back-button" data-back="game-selection-screen">← Back</button>
-<div class="page-heading"><p class="eyebrow">GAME SETUP • STEP 2</p><h2>Murder Mystery 2</h2><p>Configure the lobby before the game begins. Set up the roles players can receive before the game starts.</p></div>
+<div class="page-heading"><p class="eyebrow">GAME SETUP • STEP 2</p><h2>Murder Mystery 2</h2><p>Configure the lobby, roles, and game before starting.</p></div>
 <div class="setup-summary">
 <div><span>GAME</span><strong>Murder Mystery 2</strong></div>
 <div><span>PLAYERS</span><strong id="setup-player-count">0</strong></div>
@@ -74,7 +74,7 @@
 </div>
 <div class="setup-card"><div class="section-heading"><h3>Players</h3><span id="setup-player-management-status">Live</span></div><div id="setup-player-list" class="player-list"></div><p class="management-note">Manage who is in the lobby before assigning roles.</p></div>
 <div class="setup-card">
-<div class="section-heading"><h3>Game Settings</h3><span>V0.3.7</span></div>
+<div class="section-heading"><h3>Game Settings</h3><span>V0.3.9</span></div>
 <p class="setup-card-description">Choose who can see player deaths during the game. This setting is saved with the lobby and will control death visibility when the gameplay system is added.</p>
 <div class="death-visibility-control">
 <div class="death-visibility-labels" aria-hidden="true">
@@ -88,13 +88,34 @@
 <p id="death-visibility-status" class="setting-status">Using the default: deaths are hidden.</p>
 </div>
 <div class="setup-card">
-<div class="section-heading"><h3>Role Configuration</h3><span>V0.3.7</span></div>
+<div class="section-heading"><h3>Role Configuration</h3><span>V0.3.8</span></div>
 <p class="setup-card-description">Choose how many players receive each MM2 role. AUTO fills the remaining players after the fixed role counts are assigned.</p>
 <div id="role-list" class="role-list"></div>
 <div id="role-configuration-status" class="role-configuration-status">Loading role configuration...</div>
 <p class="role-save-note">Role counts are saved with this lobby. Actual private role assignment will happen when the game-start system is added.</p>
 </div>
-<div class="setup-card"><h3>Next</h3><p>Private role data, rules, boundaries, tasks, and the Start Game system will be added in later V0.3 updates.</p></div>
+<div class="setup-card start-game-card">
+<div class="section-heading"><h3>Start Game</h3><span>V0.3.9</span></div>
+<p class="setup-card-description">When the setup is valid, the host can assign the configured roles privately and start the MM2 session.</p>
+<div id="start-game-status" class="start-game-status">Checking game setup...</div>
+<button id="start-game-btn" class="primary-button" type="button">Start Game</button>
+</div>
+</section>
+
+<section id="game-screen" class="screen">
+<button id="game-leave-btn" class="back-button" type="button">← Leave Game</button>
+<div class="page-heading"><p class="eyebrow">GAME IN PROGRESS</p><h2>Murder Mystery 2</h2><p id="game-status-text">Your private role is loading...</p></div>
+<div class="game-role-card">
+<div class="eyebrow">YOUR ROLE</div>
+<h3 id="game-role-name">Loading...</h3>
+<p id="game-role-description">Your role information will appear here.</p>
+</div>
+<div id="host-role-board" class="setup-card host-role-board">
+<div class="section-heading"><h3>Role Assignments</h3><span>HOST</span></div>
+<p class="setup-card-description">Host view only. Players cannot see this list.</p>
+<div id="host-role-list" class="player-list"></div>
+</div>
+<div class="setup-card"><h3>Game Info</h3><p>The live rules, boundaries, tasks, events, death feed, and other game systems will be added as the MM2 gameplay layer grows.</p></div>
 </section>
 
 <section id="join-screen" class="screen">
@@ -117,6 +138,6 @@
 </section>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script type="module" src="script.js?v=0.3.7"></script>
+<script type="module" src="script.js?v=0.3.9"></script>
 </body>
 </html>
