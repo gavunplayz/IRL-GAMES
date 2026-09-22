@@ -88,7 +88,9 @@ function buildPlayerRow(player, allowManagement) {
 
   const badge = document.createElement("span");
   badge.className = "player-badge";
-  if (player.host) {
+  if (player.host && player.uid === currentUser?.uid) {
+    badge.textContent = "HOST • YOU";
+  } else if (player.host) {
     badge.textContent = "HOST";
   } else if (player.uid === currentUser?.uid) {
     badge.textContent = "YOU";
@@ -287,6 +289,11 @@ async function joinLobby(code, name) {
 
   const lobby = snapshot.val();
   if (lobby.status !== "waiting") throw new Error("That lobby is no longer accepting players.");
+
+  const existingNames = Object.values(lobby.players || {}).map(player => String(player.name || "").trim().toLowerCase());
+  if (existingNames.includes(name.toLowerCase())) {
+    throw new Error("That player name is already in this lobby. Choose another name.");
+  }
 
   const playerRef = ref(db, "lobbies/" + currentLobbyCode + "/players/" + currentUser.uid);
 
