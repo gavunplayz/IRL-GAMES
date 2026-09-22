@@ -2,7 +2,7 @@
 
 A customizable real-life game platform where every player can use their own device as a game screen.
 
-## Current version: V0.3.9.2
+## Current version: V0.3.9.3
 
 V0.3 is the first major multiplayer gameplay foundation for IRL Games. The platform can now create real online lobbies, assign private roles, start an MM2 session, track player deaths, and process Murderer/Sheriff actions.
 
@@ -81,6 +81,9 @@ V0.3 is the first major multiplayer gameplay foundation for IRL Games. The platf
 - If the Sheriff targets a non-Murderer, both the selected player and Sheriff are marked dead
 - Role actions are validated by the host using the private role assignments
 - Death updates are written atomically
+- Murderer-only private kill list tracks only players the Murderer personally killed
+- Private player notes are available to every player during the game
+- Host can restart a round while keeping everyone in the lobby
 
 ## Current architecture
 
@@ -113,6 +116,12 @@ Firebase Realtime Database
 │           └── <actionId>/
 │               ├── targetUid
 │               └── createdAt
+│
+├── gameNotes/
+│   └── <lobbyId>/
+│       └── <uid>/
+│           ├── text
+│           └── updatedAt
 │
 └── gameState/
     └── <lobbyId>/
@@ -160,9 +169,12 @@ The frontend uses Firebase Anonymous Authentication. Realtime Database rules sep
 - Players can write only their own lobby player record.
 - Private roles are readable by the assigned player or host.
 - Players cannot write their own private role.
+- Murderer kill records are written by the host and remain in the Murderer's private record.
+- Player notes are readable and writable only by that player.
 - Role actions are restricted to players whose private role is Murderer or Sheriff.
 - Only the host writes death state.
 - Death visibility controls who can read other players' death records.
+- Restarting a round clears roles, deaths, actions, and public game state while keeping the lobby and players.
 
 ## Repository files
 
@@ -174,7 +186,7 @@ The frontend uses Firebase Anonymous Authentication. Realtime Database rules sep
 
 ## Status
 
-**V0.3 is essentially complete.**
+**V0.3 is essentially complete, including the V0.3.9.3 round controls and private-player improvements.**
 
 The core multiplayer lobby, private-role system, game start flow, death tracking, and first MM2 role actions are the foundation for the next phase.
 
