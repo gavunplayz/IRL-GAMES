@@ -550,12 +550,12 @@ function startGameDeathListeners(deathVisibility) {
 }
 
 async function processGameAction(actorUid, actionId, action) {
-  if (!currentUser || !action || !action.targetUid || processedGameActions.has(actorUid + ":" + actionId)) return;
+  const actionKey = actorUid + ":" + actionId;
+
+  if (!currentUser || !action || !action.targetUid || processedGameActions.has(actionKey)) return;
 
   const hostSnapshot = await get(ref(db, "lobbies/" + currentLobbyCode + "/hostUid"));
   if (!hostSnapshot.exists() || hostSnapshot.val() !== currentUser.uid) return;
-
-  processedGameActions.add(actorUid + ":" + actionId);
 
   try {
     const lobbySnapshot = await get(ref(db, "lobbies/" + currentLobbyCode));
@@ -568,10 +568,14 @@ async function processGameAction(actorUid, actionId, action) {
     const targetRole = assignments[action.targetUid]?.roleId;
 
     if (actorRole !== "murderer" && actorRole !== "sheriff") return;
+    if (!players.some(player => player.uid === actorUid)) return;
     if (!players.some(player => player.uid === action.targetUid)) return;
+    if (action.targetUid === actorUid) return;
 
     const deathsSnapshot = await get(ref(db, "gameState/" + currentLobbyCode + "/deaths"));
     const latestDeaths = deathsSnapshot.val() || {};
+
+    // Ignore actions from players who are already dead or against a dead target.
     if (latestDeaths[action.targetUid]) return;
     if (latestDeaths[actorUid]) return;
 
@@ -579,15 +583,19 @@ async function processGameAction(actorUid, actionId, action) {
     if (!targetPlayer) return;
 
     const now = Date.now();
-    const death = {
+    const updates = {};
+
+    // The selected target always dies from the action.
+    updates["gameState/" + currentLobbyCode + "/deaths/" + action.targetUid] = {
       deadAt: now,
       killedBy: actorUid,
-      cause: actorRole === "sheriff" && targetRole !== "murderer" ? "sheriff_wrong_target" : "role_action"
+      cause: actorRole === "sheriff" && targetRole !== "murderer"
+        ? "sheriff_wrong_target"
+        : "role_action"
     };
 
-    const updates = {};
-    updates["gameState/" + currentLobbyCode + "/deaths/" + action.targetUid] = death;
-
+    // Murderer's private kill history is updated in the SAME atomic write
+    // as the death, so the live kill-list listener sees it immediately.
     if (actorRole === "murderer") {
       updates["gamePrivate/" + currentLobbyCode + "/" + actorUid + "/kills/" + action.targetUid] = {
         name: targetPlayer.name,
@@ -595,6 +603,8 @@ async function processGameAction(actorUid, actionId, action) {
       };
     }
 
+    // Sheriff picked anyone other than the Murderer:
+    // the Sheriff and the selected target both die.
     if (actorRole === "sheriff" && targetRole !== "murderer") {
       updates["gameState/" + currentLobbyCode + "/deaths/" + actorUid] = {
         deadAt: now,
@@ -604,8 +614,14 @@ async function processGameAction(actorUid, actionId, action) {
     }
 
     await update(ref(db), updates);
+
+    // Only mark the action processed after Firebase successfully accepted
+    // the complete result. If the write fails, the listener can retry it.
+    processedGameActions.add(actionKey);
   } catch (error) {
     console.error("Could not process game action:", error);
+    // Do not mark failed actions as processed. The realtime listener will
+    // retry the action when Firebase sends the action data again.
   }
 }
 function startGameActionListener() {
